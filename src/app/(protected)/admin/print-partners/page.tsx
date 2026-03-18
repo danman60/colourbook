@@ -84,7 +84,7 @@ export default function AdminPrintPartnersPage() {
               <div className="space-y-2"><Label>Email</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} required /></div>
               <div className="space-y-2">
                 <Label>Region</Label>
-                <Select value={regionId} onValueChange={(v: string | null) => v !== null && setRegionId(v)} required>
+                <Select value={regionId} onValueChange={(v) => v !== null && setRegionId(v ?? '')} required>
                   <SelectTrigger className="cursor-pointer"><SelectValue placeholder="Select region" /></SelectTrigger>
                   <SelectContent>{regions.map(r => <SelectItem key={r.id} value={r.id} className="cursor-pointer">{r.name}</SelectItem>)}</SelectContent>
                 </Select>

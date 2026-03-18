@@ -24,6 +24,7 @@ export default function FamilyPage() {
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     loadMembers();
@@ -33,6 +34,17 @@ export default function FamilyPage() {
     const { data } = await getFamilyMembers();
     if (data) setMembers(data);
     setLoading(false);
+  }
+
+  function handlePhotoSelect(file: File | null) {
+    setPhotoFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => setPhotoPreview(e.target?.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setPhotoPreview(null);
+    }
   }
 
   async function handleUpload(e: React.FormEvent) {
@@ -69,6 +81,7 @@ export default function FamilyPage() {
       setName('');
       setRelationship('');
       setPhotoFile(null);
+      setPhotoPreview(null);
       loadMembers();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Upload failed');
@@ -90,22 +103,30 @@ export default function FamilyPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <div className="skeleton h-9 w-56 mb-2" />
+          <div className="skeleton h-5 w-72" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="skeleton aspect-square rounded-2xl" />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in-up">
         <div>
           <h1 className="text-3xl font-heading font-bold">Family Members</h1>
           <p className="text-muted-foreground mt-1">Upload photos of your family to use in coloring pages</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setPhotoPreview(null); setPhotoFile(null); } }}>
           <DialogTrigger asChild>
-            <Button className="cursor-pointer gap-2">
+            <Button className="cursor-pointer gap-2 shadow-sm">
               <Plus className="h-4 w-4" /> Add Member
             </Button>
           </DialogTrigger>
@@ -116,19 +137,29 @@ export default function FamilyPage() {
             <form onSubmit={handleUpload} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="photo">Photo</Label>
-                <div className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary transition-colors">
+                <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all duration-200 relative overflow-hidden">
                   <input
                     id="photo"
                     type="file"
                     accept="image/*"
-                    onChange={e => setPhotoFile(e.target.files?.[0] || null)}
+                    onChange={e => handlePhotoSelect(e.target.files?.[0] || null)}
                     className="hidden"
                   />
-                  <label htmlFor="photo" className="cursor-pointer">
-                    <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      {photoFile ? photoFile.name : 'Click to upload a photo'}
-                    </p>
+                  <label htmlFor="photo" className="cursor-pointer block">
+                    {photoPreview ? (
+                      <div className="relative">
+                        <img src={photoPreview} alt="Preview" className="w-24 h-24 object-cover rounded-xl mx-auto" />
+                        <p className="text-xs text-muted-foreground mt-2">Click to change</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="bg-primary/10 rounded-xl p-3 inline-block mb-2">
+                          <Upload className="h-6 w-6 text-primary" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">Click to upload a photo</p>
+                        <p className="text-xs text-muted-foreground mt-1">JPG, PNG up to 10MB</p>
+                      </>
+                    )}
                   </label>
                 </div>
               </div>
@@ -138,7 +169,7 @@ export default function FamilyPage() {
               </div>
               <div className="space-y-2">
                 <Label>Relationship</Label>
-                <Select value={relationship} onValueChange={(v: string | null) => v !== null && setRelationship(v)} required>
+                <Select value={relationship} onValueChange={(val) => setRelationship(val ?? '')} required>
                   <SelectTrigger className="cursor-pointer">
                     <SelectValue placeholder="Select relationship" />
                   </SelectTrigger>
@@ -149,7 +180,7 @@ export default function FamilyPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full cursor-pointer" disabled={uploading || !photoFile}>
+              <Button type="submit" className="w-full cursor-pointer shadow-sm" disabled={uploading || !photoFile}>
                 {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Add Family Member
               </Button>
@@ -168,25 +199,26 @@ export default function FamilyPage() {
         />
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {members.map(member => (
-            <Card key={member.id} className="overflow-hidden group">
-              <div className="relative">
+          {members.map((member, i) => (
+            <Card key={member.id} className={`overflow-hidden group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-fade-in-up stagger-${Math.min(i + 1, 8)}`}>
+              <div className="relative overflow-hidden">
                 <img
                   src={member.original_photo_url}
                   alt={member.name}
-                  className="w-full aspect-square object-cover"
+                  className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-300"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <Button
                   variant="destructive"
                   size="icon"
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer h-8 w-8"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer h-8 w-8"
                   onClick={() => handleDelete(member.id, member.name)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
               <CardContent className="p-4">
-                <p className="font-semibold">{member.name}</p>
+                <p className="font-heading font-semibold">{member.name}</p>
                 <p className="text-sm text-muted-foreground capitalize">{member.relationship}</p>
               </CardContent>
             </Card>

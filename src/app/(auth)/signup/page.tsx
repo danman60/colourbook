@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Palette, Loader2 } from 'lucide-react';
+import { Palette, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -49,19 +49,22 @@ export default function SignupPage() {
     setTimeout(() => {
       router.push('/dashboard');
       router.refresh();
-    }, 1000);
+    }, 1500);
   }
 
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background paper-texture px-4">
-        <Card className="w-full max-w-md shadow-lg">
-          <CardContent className="pt-8 text-center">
-            <div className="rounded-2xl bg-accent/10 p-3 inline-block mb-4">
-              <Palette className="h-8 w-8 text-accent" />
+        <Card className="w-full max-w-md shadow-xl animate-scale-in">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="rounded-2xl bg-accent/10 p-4 inline-block mb-4">
+              <Sparkles className="h-10 w-10 text-accent" />
             </div>
-            <h2 className="text-xl font-heading font-bold mb-2">Welcome to Colourbook!</h2>
+            <h2 className="text-2xl font-heading font-bold mb-2">Welcome to Colourbook!</h2>
             <p className="text-muted-foreground">Your account has been created. You have 20 free generation credits to get started!</p>
+            <div className="mt-4">
+              <Loader2 className="h-5 w-5 animate-spin text-primary mx-auto" />
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -70,10 +73,10 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background paper-texture px-4">
-      <Card className="w-full max-w-md shadow-lg border-border">
-        <CardHeader className="text-center">
+      <Card className="w-full max-w-md shadow-xl border-border animate-scale-in">
+        <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="rounded-2xl bg-primary/10 p-3">
+            <div className="rounded-2xl bg-primary/10 p-3 shadow-sm">
               <Palette className="h-8 w-8 text-primary" />
             </div>
           </div>
@@ -83,7 +86,7 @@ export default function SignupPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-xl">
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-xl animate-fade-in">
                 {error}
               </div>
             )}
@@ -96,6 +99,7 @@ export default function SignupPage() {
                 onChange={e => setFullName(e.target.value)}
                 placeholder="Your name"
                 required
+                autoFocus
               />
             </div>
             <div className="space-y-2">
@@ -121,11 +125,15 @@ export default function SignupPage() {
                 minLength={6}
               />
             </div>
-            <Button type="submit" className="w-full cursor-pointer" disabled={loading}>
+            <Button type="submit" className="w-full cursor-pointer shadow-sm" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Account
             </Button>
           </form>
+
+          <div className="text-center text-xs text-muted-foreground mt-4">
+            Includes 20 free AI-generated coloring pages
+          </div>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Already have an account?{' '}

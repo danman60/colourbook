@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Users,
@@ -12,9 +12,12 @@ import {
   Settings,
   Shield,
   Palette,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CreditsBadge } from '@/components/shared/credits-badge';
+import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 
 const userLinks = [
@@ -37,6 +40,27 @@ const adminLinks = [
 
 export function Sidebar({ profile }: { profile: Profile }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  }
+
+  function isActive(href: string) {
+    if (href === '/dashboard') return pathname === '/dashboard';
+    if (href === '/admin') return pathname === '/admin';
+    return pathname.startsWith(href);
+  }
+
+  const initials = (profile.full_name || profile.email)
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <aside className="hidden md:flex md:flex-col md:w-64 border-r border-border bg-card min-h-screen">
@@ -60,9 +84,9 @@ export function Sidebar({ profile }: { profile: Profile }) {
             key={link.href}
             href={link.href}
             className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 cursor-pointer',
-              pathname === link.href || (link.href !== '/dashboard' && pathname.startsWith(link.href))
-                ? 'bg-primary text-primary-foreground'
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer relative',
+              isActive(link.href)
+                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
           >
@@ -83,9 +107,9 @@ export function Sidebar({ profile }: { profile: Profile }) {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 cursor-pointer',
-                  pathname === link.href
-                    ? 'bg-primary text-primary-foreground'
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer',
+                  isActive(link.href)
+                    ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
@@ -97,10 +121,25 @@ export function Sidebar({ profile }: { profile: Profile }) {
         )}
       </nav>
 
-      {/* User info */}
+      {/* User info + logout */}
       <div className="p-4 border-t border-border">
-        <p className="text-sm font-medium truncate">{profile.full_name || profile.email}</p>
-        <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <span className="text-xs font-bold text-primary">{initials}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{profile.full_name || profile.email}</p>
+            <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 cursor-pointer text-muted-foreground hover:text-destructive"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </aside>
   );

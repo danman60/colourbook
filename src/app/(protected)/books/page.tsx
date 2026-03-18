@@ -57,29 +57,41 @@ export default function BooksPage() {
     else { toast.success('Book deleted'); loadBooks(); }
   }
 
-  function statusColor(status: string) {
+  function statusBadge(status: string) {
     switch (status) {
-      case 'draft': return 'secondary';
-      case 'complete': return 'default';
-      case 'ordered': return 'default';
-      default: return 'secondary';
+      case 'draft': return <Badge variant="secondary" className="capitalize text-[10px]">Draft</Badge>;
+      case 'complete': return <Badge className="bg-accent text-white capitalize text-[10px]">Complete</Badge>;
+      case 'ordered': return <Badge className="bg-primary text-white capitalize text-[10px]">Ordered</Badge>;
+      default: return <Badge variant="secondary" className="capitalize text-[10px]">{status}</Badge>;
     }
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <div className="skeleton h-9 w-40 mb-2" />
+          <div className="skeleton h-5 w-64" />
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="skeleton h-48 rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between animate-fade-in-up">
         <div>
           <h1 className="text-3xl font-heading font-bold">My Books</h1>
           <p className="text-muted-foreground mt-1">Build and order custom coloring books</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="cursor-pointer gap-2"><Plus className="h-4 w-4" /> New Book</Button>
+            <Button className="cursor-pointer gap-2 shadow-sm"><Plus className="h-4 w-4" /> New Book</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle className="font-heading">Create New Book</DialogTitle></DialogHeader>
@@ -90,9 +102,9 @@ export default function BooksPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="desc">Description (optional)</Label>
-                <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="A book for the whole family..." rows={2} />
+                <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="A book for the whole family..." rows={2} className="resize-none" />
               </div>
-              <Button type="submit" className="w-full cursor-pointer" disabled={creating}>
+              <Button type="submit" className="w-full cursor-pointer shadow-sm" disabled={creating}>
                 {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Book
               </Button>
@@ -105,15 +117,20 @@ export default function BooksPage() {
         <EmptyState icon={BookOpen} title="No books yet" description="Create your first coloring book and add pages from your gallery!" actionLabel="Create Book" onAction={() => setDialogOpen(true)} />
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {books.map(book => (
-            <Card key={book.id} className="group hover:shadow-md transition-shadow duration-200">
+          {books.map((book, i) => (
+            <Card key={book.id} className={`group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 animate-fade-in-up stagger-${Math.min(i + 1, 8)}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <Link href={`/books/${book.id}`} className="cursor-pointer flex-1">
-                    <CardTitle className="font-heading text-lg">{book.title}</CardTitle>
+                    <CardTitle className="font-heading text-lg hover:text-primary transition-colors">{book.title}</CardTitle>
                   </Link>
                   {book.status === 'draft' && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleDelete(book.id, book.title)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 cursor-pointer text-destructive opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0"
+                      onClick={() => handleDelete(book.id, book.title)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
@@ -122,11 +139,11 @@ export default function BooksPage() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{book.page_count} page{book.page_count !== 1 ? 's' : ''}</span>
-                  <Badge variant={statusColor(book.status)} className="capitalize">{book.status}</Badge>
+                  {statusBadge(book.status)}
                 </div>
                 {book.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{book.description}</p>}
                 <Link href={`/books/${book.id}`}>
-                  <Button variant="outline" size="sm" className="w-full mt-4 cursor-pointer">
+                  <Button variant="outline" size="sm" className="w-full mt-4 cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors duration-200">
                     {book.status === 'draft' ? 'Edit Book' : 'View Book'}
                   </Button>
                 </Link>

@@ -58,10 +58,10 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background paper-texture px-4">
-      <Card className="w-full max-w-md shadow-lg border-border">
-        <CardHeader className="text-center">
+      <Card className="w-full max-w-md shadow-xl border-border animate-scale-in">
+        <CardHeader className="text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="rounded-2xl bg-primary/10 p-3">
+            <div className="rounded-2xl bg-primary/10 p-3 shadow-sm">
               <Palette className="h-8 w-8 text-primary" />
             </div>
           </div>
@@ -71,7 +71,7 @@ function LoginForm() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-xl">
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-xl animate-fade-in">
                 {error}
               </div>
             )}
@@ -84,6 +84,7 @@ function LoginForm() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                autoFocus
               />
             </div>
             <div className="space-y-2">
@@ -97,7 +98,7 @@ function LoginForm() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full cursor-pointer" disabled={loading}>
+            <Button type="submit" className="w-full cursor-pointer shadow-sm" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>

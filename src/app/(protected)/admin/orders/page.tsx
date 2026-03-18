@@ -49,7 +49,7 @@ export default function AdminOrdersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-heading font-bold">All Orders</h1>
-        <Select value={filter} onValueChange={(v: string | null) => v !== null && setFilter(v)}>
+        <Select value={filter} onValueChange={(v) => v !== null && setFilter(v ?? 'all')}>
           <SelectTrigger className="w-40 cursor-pointer"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all" className="cursor-pointer">All</SelectItem>
@@ -97,7 +97,7 @@ export default function AdminOrdersPage() {
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={newStatus} onValueChange={v => setNewStatus(v as OrderStatus)}>
+                <Select value={newStatus} onValueChange={(v) => v !== null && setNewStatus(v as OrderStatus)}>
                   <SelectTrigger className="cursor-pointer"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ALL_STATUSES.map(s => <SelectItem key={s} value={s} className="cursor-pointer capitalize">{s}</SelectItem>)}
