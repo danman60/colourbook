@@ -275,8 +275,9 @@ colourbook/
 - Test admin: admin@colourbook.com / AdminPassword123!
 
 ## Status
-- [ ] Phase 5: Scaffold
-- [ ] Phase 5.5: Fresh Session Migration
-- [ ] Phase 6: Design Pass
-- [ ] Phase 7: Build & Deploy
-- [ ] Phase 8: Seed Data & Production Testing
+- [x] Phase 5: Scaffold (e95bd34)
+- [x] Phase 5.5: Fresh Session Migration (5d799d5)
+- [x] Phase 6: Design Pass (cfa0815)
+- [x] Phase 7: Build & Deploy (ee18854, deployed to Vercel)
+- [x] Phase 8: Seed Data & Production Testing (cfa0815 — Playwright CLI verified all pages)
+- [x] Phase 9: Verify Audit (eb7e9bb — 3 critical, 4 gotcha fixes)
