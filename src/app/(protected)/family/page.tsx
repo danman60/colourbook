@@ -138,7 +138,7 @@ export default function FamilyPage() {
               </div>
               <div className="space-y-2">
                 <Label>Relationship</Label>
-                <Select value={relationship} onValueChange={setRelationship} required>
+                <Select value={relationship} onValueChange={(v: string | null) => v !== null && setRelationship(v)} required>
                   <SelectTrigger className="cursor-pointer">
                     <SelectValue placeholder="Select relationship" />
                   </SelectTrigger>

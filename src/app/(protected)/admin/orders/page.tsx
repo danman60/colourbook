@@ -49,7 +49,7 @@ export default function AdminOrdersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-heading font-bold">All Orders</h1>
-        <Select value={filter} onValueChange={setFilter}>
+        <Select value={filter} onValueChange={(v: string | null) => v !== null && setFilter(v)}>
           <SelectTrigger className="w-40 cursor-pointer"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all" className="cursor-pointer">All</SelectItem>

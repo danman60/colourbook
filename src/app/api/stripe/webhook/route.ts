@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     if (orderId) {
       console.log('[stripe/webhook] payment complete for order:', orderId);
 
-      await supabaseAdmin
-        .from('cb_orders')
+      await (supabaseAdmin
+        .from('cb_orders') as any)
         .update({
           status: 'paid',
           stripe_payment_intent_id: session.payment_intent as string,

@@ -97,7 +97,7 @@ export default function GeneratePage() {
             {/* Family Member Selection */}
             <div className="space-y-2">
               <Label>Family Member (optional)</Label>
-              <Select value={selectedMember} onValueChange={setSelectedMember}>
+              <Select value={selectedMember} onValueChange={(v: string | null) => v !== null && setSelectedMember(v)}>
                 <SelectTrigger className="cursor-pointer">
                   <SelectValue placeholder="Select a family member" />
                 </SelectTrigger>

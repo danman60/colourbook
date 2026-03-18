@@ -9,11 +9,11 @@ export async function generateColoringPage(pageId: string, userId: string): Prom
 
   try {
     // Get page details
-    const { data: page, error: pageError } = await supabaseAdmin
-      .from('cb_pages')
+    const { data: page, error: pageError } = await (supabaseAdmin
+      .from('cb_pages') as any)
       .select('*, family_member:cb_family_members(name, relationship)')
       .eq('id', pageId)
-      .single();
+      .single() as { data: any; error: any };
 
     if (pageError || !page) {
       console.error('[generateColoringPage] page not found:', pageError?.message);
@@ -21,8 +21,8 @@ export async function generateColoringPage(pageId: string, userId: string): Prom
     }
 
     // Update status to generating
-    await supabaseAdmin
-      .from('cb_pages')
+    await (supabaseAdmin
+      .from('cb_pages') as any)
       .update({ generation_status: 'generating' })
       .eq('id', pageId);
 
@@ -49,7 +49,7 @@ export async function generateColoringPage(pageId: string, userId: string): Prom
       response_format: 'url',
     });
 
-    const imageUrl = response.data[0]?.url;
+    const imageUrl = response.data?.[0]?.url;
     if (!imageUrl) {
       throw new Error('No image URL in OpenAI response');
     }
@@ -81,8 +81,8 @@ export async function generateColoringPage(pageId: string, userId: string): Prom
     const publicUrl = urlData.publicUrl;
 
     // Update page with completed status and URL
-    await supabaseAdmin
-      .from('cb_pages')
+    await (supabaseAdmin
+      .from('cb_pages') as any)
       .update({
         generation_status: 'complete',
         coloring_page_url: publicUrl,
@@ -99,8 +99,8 @@ export async function generateColoringPage(pageId: string, userId: string): Prom
     console.error('[generateColoringPage] failed:', errorMessage);
 
     // Update page with error
-    await supabaseAdmin
-      .from('cb_pages')
+    await (supabaseAdmin
+      .from('cb_pages') as any)
       .update({
         generation_status: 'failed',
         generation_error: errorMessage,

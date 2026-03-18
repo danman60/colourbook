@@ -13,6 +13,6 @@ export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
         { auth: { autoRefreshToken: false, persistSession: false } }
       );
     }
-    return (_admin as Record<string, unknown>)[prop as string];
+    return (_admin as unknown as Record<string, unknown>)[prop as string];
   },
 });

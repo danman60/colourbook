@@ -133,7 +133,7 @@ export default function CheckoutPage() {
         <Card>
           <CardHeader><CardTitle className="font-heading">Print Partner</CardTitle></CardHeader>
           <CardContent>
-            <Select value={selectedPartner} onValueChange={setSelectedPartner}>
+            <Select value={selectedPartner} onValueChange={(v: string | null) => v !== null && setSelectedPartner(v)}>
               <SelectTrigger className="cursor-pointer">
                 <SelectValue placeholder="Select print partner" />
               </SelectTrigger>
@@ -168,7 +168,7 @@ export default function CheckoutPage() {
               </div>
               <div className="space-y-2">
                 <Label>Province</Label>
-                <Select value={province} onValueChange={setProvince}>
+                <Select value={province} onValueChange={(v: string | null) => v !== null && setProvince(v)}>
                   <SelectTrigger className="cursor-pointer"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {PROVINCES.map(p => <SelectItem key={p} value={p} className="cursor-pointer">{p}</SelectItem>)}
