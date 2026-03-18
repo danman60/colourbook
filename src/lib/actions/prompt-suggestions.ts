@@ -1,6 +1,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/actions/admin';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult, PromptSuggestion, CreatePromptSuggestion } from '@/types';
 
@@ -25,7 +27,6 @@ export async function getPromptSuggestions(): Promise<ActionResult<PromptSuggest
 export async function getRandomSuggestions(count = 6): Promise<ActionResult<PromptSuggestion[]>> {
   const supabase = await createClient();
 
-  // Fetch all active, then randomly sample client-side
   const { data, error } = await supabase
     .from('cb_prompt_suggestions')
     .select('*')
@@ -46,12 +47,14 @@ export async function getRandomSuggestions(count = 6): Promise<ActionResult<Prom
   return { data: shuffled.slice(0, count) as PromptSuggestion[], error: null };
 }
 
+// Admin: create suggestion (uses admin client to bypass RLS)
 export async function createSuggestion(input: CreatePromptSuggestion): Promise<ActionResult<PromptSuggestion>> {
   console.log('[createSuggestion] called:', JSON.stringify(input));
-  const supabase = await createClient();
+  const adminId = await requireAdmin();
+  if (!adminId) return { data: null, error: 'Admin access required' };
 
-  const { data, error } = await supabase
-    .from('cb_prompt_suggestions')
+  const { data, error } = await (supabaseAdmin
+    .from('cb_prompt_suggestions') as any)
     .insert({ ...input, is_active: true })
     .select()
     .single();
@@ -65,11 +68,13 @@ export async function createSuggestion(input: CreatePromptSuggestion): Promise<A
   return { data: data as PromptSuggestion, error: null };
 }
 
+// Admin: update suggestion (uses admin client to bypass RLS)
 export async function updateSuggestion(id: string, updates: Partial<PromptSuggestion>): Promise<ActionResult<PromptSuggestion>> {
-  const supabase = await createClient();
+  const adminId = await requireAdmin();
+  if (!adminId) return { data: null, error: 'Admin access required' };
 
-  const { data, error } = await supabase
-    .from('cb_prompt_suggestions')
+  const { data, error } = await (supabaseAdmin
+    .from('cb_prompt_suggestions') as any)
     .update(updates)
     .eq('id', id)
     .select()
@@ -81,9 +86,13 @@ export async function updateSuggestion(id: string, updates: Partial<PromptSugges
   return { data: data as PromptSuggestion, error: null };
 }
 
+// Admin: delete suggestion (uses admin client to bypass RLS)
 export async function deleteSuggestion(id: string): Promise<ActionResult<null>> {
-  const supabase = await createClient();
-  const { error } = await supabase.from('cb_prompt_suggestions').delete().eq('id', id);
+  const adminId = await requireAdmin();
+  if (!adminId) return { data: null, error: 'Admin access required' };
+
+  const { error } = await (supabaseAdmin
+    .from('cb_prompt_suggestions') as any).delete().eq('id', id);
   if (error) return { data: null, error: error.message };
   revalidatePath('/admin/prompts');
   return { data: null, error: null };

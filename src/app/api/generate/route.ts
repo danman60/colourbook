@@ -1,16 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { generateColoringPage } from '@/lib/actions/openai';
 
 export async function POST(request: NextRequest) {
   try {
-    const { pageId, userId } = await request.json();
-    console.log('[api/generate] pageId:', pageId, 'userId:', userId);
+    const { pageId } = await request.json();
 
-    if (!pageId || !userId) {
-      return NextResponse.json({ error: 'Missing pageId or userId' }, { status: 400 });
+    if (!pageId) {
+      return NextResponse.json({ error: 'Missing pageId' }, { status: 400 });
     }
 
-    const result = await generateColoringPage(pageId, userId);
+    // Authenticate from session — never trust client-supplied userId
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      console.error('[api/generate] unauthenticated request');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify the page belongs to this user
+    const { data: page } = await supabase
+      .from('cb_pages')
+      .select('id')
+      .eq('id', pageId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!page) {
+      console.error('[api/generate] page not found or not owned by user');
+      return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+    }
+
+    console.log('[api/generate] pageId:', pageId, 'userId:', user.id);
+    const result = await generateColoringPage(pageId, user.id);
 
     if (result.error) {
       console.error('[api/generate] generation failed:', result.error);

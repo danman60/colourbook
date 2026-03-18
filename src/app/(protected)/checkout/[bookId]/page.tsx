@@ -178,7 +178,15 @@ export default function CheckoutPage() {
             </div>
             <div className="space-y-2">
               <Label>Postal Code</Label>
-              <Input value={postalCode} onChange={e => setPostalCode(e.target.value)} placeholder="A1A 1A1" required />
+              <Input
+                value={postalCode}
+                onChange={e => setPostalCode(e.target.value.toUpperCase())}
+                placeholder="A1A 1A1"
+                required
+                pattern="[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d"
+                title="Canadian postal code (e.g. A1A 1A1)"
+                maxLength={7}
+              />
             </div>
           </CardContent>
         </Card>

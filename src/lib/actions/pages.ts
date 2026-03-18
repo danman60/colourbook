@@ -95,7 +95,7 @@ export async function generatePage(input: CreatePage): Promise<ActionResult<Page
   fetch(`${appUrl}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pageId: page.id, userId: user.id }),
+    body: JSON.stringify({ pageId: page.id }),
   }).catch(err => console.error('[generatePage] async trigger error:', err));
 
   revalidatePath('/gallery');

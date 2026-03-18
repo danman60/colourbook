@@ -1,6 +1,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/actions/admin';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult, PrintPartner, CreatePrintPartner, UpdatePrintPartner } from '@/types';
 
@@ -39,12 +41,14 @@ export async function getPrintPartner(id: string): Promise<ActionResult<PrintPar
   return { data: data as PrintPartner, error: null };
 }
 
+// Admin: create print partner (uses admin client to bypass RLS)
 export async function createPrintPartner(input: CreatePrintPartner): Promise<ActionResult<PrintPartner>> {
   console.log('[createPrintPartner] called');
-  const supabase = await createClient();
+  const adminId = await requireAdmin();
+  if (!adminId) return { data: null, error: 'Admin access required' };
 
-  const { data, error } = await supabase
-    .from('cb_print_partners')
+  const { data, error } = await (supabaseAdmin
+    .from('cb_print_partners') as any)
     .insert(input)
     .select('*, region:cb_regions(*)')
     .single();
@@ -58,12 +62,14 @@ export async function createPrintPartner(input: CreatePrintPartner): Promise<Act
   return { data: data as PrintPartner, error: null };
 }
 
+// Admin: update print partner (uses admin client to bypass RLS)
 export async function updatePrintPartner(id: string, updates: UpdatePrintPartner): Promise<ActionResult<PrintPartner>> {
   console.log('[updatePrintPartner] id:', id);
-  const supabase = await createClient();
+  const adminId = await requireAdmin();
+  if (!adminId) return { data: null, error: 'Admin access required' };
 
-  const { data, error } = await supabase
-    .from('cb_print_partners')
+  const { data, error } = await (supabaseAdmin
+    .from('cb_print_partners') as any)
     .update(updates)
     .eq('id', id)
     .select('*, region:cb_regions(*)')

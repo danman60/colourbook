@@ -6,6 +6,14 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request);
   } catch (error) {
     console.error('[middleware] Error:', error);
+    // Don't silently pass through — redirect to login for protected routes
+    const pathname = request.nextUrl.pathname;
+    const protectedPrefixes = ['/dashboard', '/family', '/generate', '/gallery', '/books', '/checkout', '/orders', '/admin'];
+    if (protectedPrefixes.some(p => pathname.startsWith(p))) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
     return NextResponse.next();
   }
 }

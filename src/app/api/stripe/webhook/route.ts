@@ -37,9 +37,27 @@ export async function POST(request: NextRequest) {
         .update({
           status: 'paid',
           stripe_payment_intent_id: session.payment_intent as string,
+          stripe_checkout_session_id: session.id,
           updated_at: new Date().toISOString(),
         })
         .eq('id', orderId);
+    }
+  } else if (event.type === 'checkout.session.expired') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const orderId = session.metadata?.order_id;
+
+    if (orderId) {
+      console.log('[stripe/webhook] checkout expired for order:', orderId);
+
+      await (supabaseAdmin
+        .from('cb_orders') as any)
+        .update({
+          status: 'cancelled',
+          notes: 'Payment session expired',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId)
+        .eq('status', 'pending'); // Only cancel if still pending
     }
   }
 

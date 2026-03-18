@@ -1,6 +1,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/actions/admin';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult, Order, CreateOrder, OrderStatus } from '@/types';
 
@@ -117,12 +119,14 @@ export async function createOrder(input: CreateOrder): Promise<ActionResult<Orde
   return { data: data as Order, error: null };
 }
 
+// Admin: update order status (uses admin client to bypass RLS)
 export async function updateOrderStatus(id: string, status: OrderStatus, extra?: { tracking_number?: string; notes?: string }): Promise<ActionResult<Order>> {
   console.log('[updateOrderStatus] id:', id, 'status:', status);
-  const supabase = await createClient();
+  const adminId = await requireAdmin();
+  if (!adminId) return { data: null, error: 'Admin access required' };
 
-  const { data, error } = await supabase
-    .from('cb_orders')
+  const { data, error } = await (supabaseAdmin
+    .from('cb_orders') as any)
     .update({
       status,
       ...extra,
@@ -143,13 +147,14 @@ export async function updateOrderStatus(id: string, status: OrderStatus, extra?:
   return { data: data as Order, error: null };
 }
 
-// Admin: get all orders
+// Admin: get all orders (uses admin client to bypass RLS)
 export async function getAllOrders(statusFilter?: OrderStatus): Promise<ActionResult<Order[]>> {
   console.log('[getAllOrders] statusFilter:', statusFilter);
-  const supabase = await createClient();
+  const adminId = await requireAdmin();
+  if (!adminId) return { data: null, error: 'Admin access required' };
 
-  let query = supabase
-    .from('cb_orders')
+  let query = (supabaseAdmin
+    .from('cb_orders') as any)
     .select('*, book:cb_books(*), print_partner:cb_print_partners(*)')
     .order('created_at', { ascending: false });
 
