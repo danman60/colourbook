@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingBag, Users, MapPin, Wand2 } from 'lucide-react';
+import { ShoppingBag, Users, MapPin, Wand2, Printer, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils';
 
@@ -13,12 +13,14 @@ export default async function AdminDashboardPage() {
     { count: partnerCount },
     { data: recentOrders },
     { data: revenue },
+    { count: queuedCount },
   ] = await Promise.all([
     supabase.from('cb_orders').select('*', { count: 'exact', head: true }),
     supabase.from('cb_profiles').select('*', { count: 'exact', head: true }),
     supabase.from('cb_print_partners').select('*', { count: 'exact', head: true }).eq('is_active', true),
     supabase.from('cb_orders').select('*').order('created_at', { ascending: false }).limit(5),
     supabase.from('cb_orders').select('amount_cents').in('status', ['paid', 'processing', 'printing', 'shipped', 'delivered']),
+    supabase.from('cb_print_queue').select('*', { count: 'exact', head: true }).eq('status', 'queued'),
   ]);
 
   const totalRevenue = (revenue || []).reduce((sum, o) => sum + o.amount_cents, 0);
@@ -26,8 +28,8 @@ export default async function AdminDashboardPage() {
   const stats = [
     { label: 'Total Orders', value: orderCount || 0, icon: ShoppingBag, href: '/admin/orders' },
     { label: 'Total Users', value: userCount || 0, icon: Users, href: '/admin/users' },
-    { label: 'Print Partners', value: partnerCount || 0, icon: MapPin, href: '/admin/print-partners' },
-    { label: 'Revenue', value: formatCurrency(totalRevenue), icon: Wand2, href: '/admin/orders' },
+    { label: 'Print Queue', value: queuedCount || 0, icon: Printer, href: '/admin/print-queue' },
+    { label: 'Revenue', value: formatCurrency(totalRevenue), icon: TrendingUp, href: '/admin/profitability' },
   ];
 
   return (

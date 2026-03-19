@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/actions/admin';
+import { spendCredits } from '@/lib/actions/credits';
+import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult, Order, CreateOrder, OrderStatus } from '@/types';
 
@@ -74,6 +76,13 @@ export async function createOrder(input: CreateOrder): Promise<ActionResult<Orde
   if (!book) return { data: null, error: 'Book not found' };
   if (book.page_count < 1) return { data: null, error: 'Book must have at least 1 page' };
 
+  // Spend credits for print+ship
+  const cost = CREDIT_COSTS.print_ship;
+  const { error: creditErr } = await spendCredits(user.id, 'print_ship', cost.credits, input.book_id, cost.costCents);
+  if (creditErr) {
+    return { data: null, error: creditErr };
+  }
+
   const baseCents = partner.price_per_book_cents;
   const extraPages = Math.max(0, book.page_count - 10); // 10 pages included
   const extraCents = extraPages * partner.price_per_extra_page_cents;
@@ -88,7 +97,7 @@ export async function createOrder(input: CreateOrder): Promise<ActionResult<Orde
       user_id: user.id,
       book_id: input.book_id,
       print_partner_id: input.print_partner_id,
-      status: 'pending' as OrderStatus,
+      status: 'paid' as OrderStatus, // Credits already spent — order is paid
       amount_cents: totalCents,
       currency: 'cad',
       shipping_name: input.shipping_name,
@@ -113,9 +122,30 @@ export async function createOrder(input: CreateOrder): Promise<ActionResult<Orde
     .update({ status: 'ordered', updated_at: new Date().toISOString() })
     .eq('id', input.book_id);
 
-  console.log('[createOrder] success, id:', data.id, 'amount:', totalCents);
+  // Add to print queue
+  // Get book's coloring pages to build a PDF URL reference
+  const { data: bookPages } = await supabase
+    .from('cb_book_pages')
+    .select('page:cb_pages(coloring_page_url)')
+    .eq('book_id', input.book_id)
+    .order('page_order');
+
+  const pdfUrl = `/api/books/${input.book_id}/download`;
+
+  await (supabaseAdmin
+    .from('cb_print_queue') as any)
+    .insert({
+      order_id: data.id,
+      user_id: user.id,
+      book_id: input.book_id,
+      pdf_url: pdfUrl,
+      status: 'queued',
+    });
+
+  console.log('[createOrder] success, id:', data.id, 'amount:', totalCents, '- added to print queue');
   revalidatePath('/orders');
   revalidatePath('/books');
+  revalidatePath('/admin/print-queue');
   return { data: data as Order, error: null };
 }
 

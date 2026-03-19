@@ -13,6 +13,9 @@ import {
   Shield,
   Palette,
   LogOut,
+  Coins,
+  Printer,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CreditsBadge } from '@/components/shared/credits-badge';
@@ -27,6 +30,7 @@ const userLinks = [
   { href: '/gallery', label: 'Gallery', icon: Image },
   { href: '/books', label: 'Books', icon: BookOpen },
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/credits', label: 'Credits', icon: Coins },
 ];
 
 const adminLinks = [
@@ -36,6 +40,8 @@ const adminLinks = [
   { href: '/admin/regions', label: 'Regions', icon: Settings },
   { href: '/admin/prompts', label: 'Prompts', icon: Wand2 },
   { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/print-queue', label: 'Print Queue', icon: Printer },
+  { href: '/admin/profitability', label: 'Profitability', icon: TrendingUp },
 ];
 
 export function Sidebar({ profile }: { profile: Profile }) {

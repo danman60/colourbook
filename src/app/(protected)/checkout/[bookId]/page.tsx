@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, CreditCard } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,12 +13,12 @@ import { Separator } from '@/components/ui/separator';
 import { getBook } from '@/lib/actions/books';
 import { getPrintPartners } from '@/lib/actions/print-partners';
 import { createOrder } from '@/lib/actions/orders';
-import { createCheckoutSession } from '@/lib/actions/stripe';
-import { formatCurrency } from '@/lib/utils';
+import { getCreditBalance } from '@/lib/actions/credits';
 import type { Book, PrintPartner } from '@/types';
 import { toast } from 'sonner';
 
 const PROVINCES = ['AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT'];
+const PRINT_SHIP_CREDITS = 15;
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -28,6 +28,7 @@ export default function CheckoutPage() {
   const [book, setBook] = useState<Book | null>(null);
   const [partners, setPartners] = useState<PrintPartner[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<string>('');
+  const [creditBalance, setCreditBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
 
@@ -40,34 +41,35 @@ export default function CheckoutPage() {
   const [postalCode, setPostalCode] = useState('');
 
   const load = useCallback(async () => {
-    const [bookRes, partnersRes] = await Promise.all([
+    const [bookRes, partnersRes, balanceRes] = await Promise.all([
       getBook(bookId),
       getPrintPartners(),
+      getCreditBalance(),
     ]);
     if (bookRes.data) setBook(bookRes.data);
     if (partnersRes.data) {
       setPartners(partnersRes.data);
       if (partnersRes.data.length > 0) setSelectedPartner(partnersRes.data[0].id);
     }
+    if (balanceRes.data !== null) setCreditBalance(balanceRes.data);
     setLoading(false);
   }, [bookId]);
 
   useEffect(() => { load(); }, [load]);
 
-  const partner = partners.find(p => p.id === selectedPartner);
-  const extraPages = Math.max(0, (book?.page_count || 0) - 10);
-  const baseCents = partner?.price_per_book_cents || 0;
-  const extraCents = extraPages * (partner?.price_per_extra_page_cents || 0);
-  const shippingCents = partner?.shipping_flat_rate_cents || 0;
-  const totalCents = baseCents + extraCents + shippingCents;
+  const hasEnoughCredits = creditBalance >= PRINT_SHIP_CREDITS;
 
   async function handleCheckout(e: React.FormEvent) {
     e.preventDefault();
-    if (!partner || !book) return;
+    if (!partners.find(p => p.id === selectedPartner) || !book) return;
+
+    if (!hasEnoughCredits) {
+      toast.error(`Not enough credits. Need ${PRINT_SHIP_CREDITS}, have ${creditBalance}.`);
+      return;
+    }
 
     setProcessing(true);
     try {
-      // Create order
       const { data: order, error: orderError } = await createOrder({
         book_id: bookId,
         print_partner_id: selectedPartner,
@@ -86,17 +88,8 @@ export default function CheckoutPage() {
         return;
       }
 
-      // Create Stripe checkout session
-      const { data: session, error: stripeError } = await createCheckoutSession(order.id);
-
-      if (stripeError || !session) {
-        toast.error(stripeError || 'Failed to create payment session');
-        setProcessing(false);
-        return;
-      }
-
-      // Redirect to Stripe
-      window.location.href = session.url;
+      toast.success('Order placed! Your book has been added to the print queue.');
+      router.push(`/orders/${order.id}?payment=success`);
     } catch {
       toast.error('Something went wrong');
       setProcessing(false);
@@ -191,25 +184,38 @@ export default function CheckoutPage() {
           </CardContent>
         </Card>
 
-        {/* Price Breakdown */}
+        {/* Credit Cost */}
         <Card>
-          <CardHeader><CardTitle className="font-heading">Price</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between"><span>Base book (up to 10 pages)</span><span>{formatCurrency(baseCents)}</span></div>
-            {extraPages > 0 && (
-              <div className="flex justify-between"><span>{extraPages} extra page{extraPages !== 1 ? 's' : ''}</span><span>{formatCurrency(extraCents)}</span></div>
-            )}
-            <div className="flex justify-between"><span>Shipping</span><span>{formatCurrency(shippingCents)}</span></div>
-            <Separator />
-            <div className="flex justify-between text-lg font-heading font-bold">
-              <span>Total</span><span>{formatCurrency(totalCents)}</span>
+          <CardHeader><CardTitle className="font-heading">Payment</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span>Print + Ship cost</span>
+              <span className="font-heading font-bold">{PRINT_SHIP_CREDITS} credits</span>
             </div>
+            <Separator />
+            <div className="flex justify-between items-center">
+              <span>Your balance</span>
+              <span className={`font-heading font-bold ${hasEnoughCredits ? 'text-green-600' : 'text-red-500'}`}>
+                {creditBalance} credits
+              </span>
+            </div>
+            {!hasEnoughCredits && (
+              <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">
+                You need {PRINT_SHIP_CREDITS - creditBalance} more credits.{' '}
+                <Link href="/credits" className="underline font-medium">Buy credits</Link>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Button type="submit" size="lg" className="w-full cursor-pointer gap-2" disabled={processing || !partner}>
-          {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
-          {processing ? 'Processing...' : `Pay ${formatCurrency(totalCents)}`}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full cursor-pointer gap-2"
+          disabled={processing || !hasEnoughCredits || !selectedPartner}
+        >
+          {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {processing ? 'Processing...' : `Spend ${PRINT_SHIP_CREDITS} Credits — Print & Ship`}
         </Button>
       </form>
     </div>

@@ -84,6 +84,7 @@ export interface Order {
   tracking_number: string | null;
   estimated_delivery: string | null;
   notes: string | null;
+  credit_transaction_id: string | null;
   created_at: string;
   updated_at: string;
   // Joined
@@ -128,6 +129,56 @@ export interface PromptSuggestion {
   is_active: boolean;
   sort_order: number;
   created_at: string;
+}
+
+// Credits system types
+export type CreditAction =
+  | 'purchase' | 'grant' | 'generate_page' | 'regenerate_page'
+  | 'finalize_book' | 'download_pdf' | 'print_ship' | 'refund' | 'adjustment';
+
+export interface CreditTransaction {
+  id: string;
+  user_id: string;
+  action: CreditAction;
+  credits: number;
+  balance_after: number;
+  reference_id: string | null;
+  cost_cents: number;
+  revenue_cents: number;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface CreditPack {
+  id: string;
+  name: string;
+  credits: number;
+  price_cents: number;
+  currency: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+// Print queue types
+export type PrintStatus = 'queued' | 'printed' | 'shipped' | 'delivered';
+
+export interface PrintQueueItem {
+  id: string;
+  order_id: string;
+  user_id: string;
+  book_id: string;
+  pdf_url: string;
+  status: PrintStatus;
+  tracking_number: string | null;
+  printed_at: string | null;
+  shipped_at: string | null;
+  notes: string | null;
+  created_at: string;
+  // Joined
+  order?: Order;
+  book?: Book;
+  profile?: Profile;
 }
 
 // Insert types (omit auto-generated fields)

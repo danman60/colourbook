@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { spendCredits } from '@/lib/actions/credits';
+import { CREDIT_COSTS } from '@/lib/credit-costs';
 import type { ActionResult, Book, CreateBook, UpdateBook } from '@/types';
 
 export async function getBooks(): Promise<ActionResult<Book[]>> {
@@ -80,6 +82,15 @@ export async function updateBook(id: string, updates: UpdateBook): Promise<Actio
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: 'Not authenticated' };
+
+  // Charge credits for finalizing (status change to 'complete')
+  if (updates.status === 'complete') {
+    const cost = CREDIT_COSTS.finalize_book;
+    const { error: creditErr } = await spendCredits(user.id, 'finalize_book', cost.credits, id, cost.costCents);
+    if (creditErr) {
+      return { data: null, error: creditErr };
+    }
+  }
 
   const { data, error } = await supabase
     .from('cb_books')

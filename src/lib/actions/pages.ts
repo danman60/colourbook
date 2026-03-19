@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { spendCredits } from '@/lib/actions/credits';
+import { CREDIT_COSTS } from '@/lib/credit-costs';
 import type { ActionResult, Page, CreatePage } from '@/types';
 
 export async function getPages(): Promise<ActionResult<Page[]>> {
@@ -52,18 +54,6 @@ export async function generatePage(input: CreatePage): Promise<ActionResult<Page
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: 'Not authenticated' };
 
-  // Check credits
-  const { data: profile } = await supabase
-    .from('cb_profiles')
-    .select('generation_credits')
-    .eq('id', user.id)
-    .single();
-
-  if (!profile || profile.generation_credits <= 0) {
-    console.log('[generatePage] no credits remaining');
-    return { data: null, error: 'No generation credits remaining. Order a printed book or purchase more credits.' };
-  }
-
   // Create page record with pending status
   const { data: page, error: insertError } = await supabase
     .from('cb_pages')
@@ -82,11 +72,14 @@ export async function generatePage(input: CreatePage): Promise<ActionResult<Page
     return { data: null, error: insertError.message };
   }
 
-  // Deduct credit
-  await supabase
-    .from('cb_profiles')
-    .update({ generation_credits: profile.generation_credits - 1 })
-    .eq('id', user.id);
+  // Deduct credit via credits system
+  const cost = CREDIT_COSTS.generate_page;
+  const { error: creditErr } = await spendCredits(user.id, 'generate_page', cost.credits, page.id, cost.costCents);
+  if (creditErr) {
+    // Rollback: delete the page we just created
+    await supabase.from('cb_pages').delete().eq('id', page.id);
+    return { data: null, error: creditErr };
+  }
 
   console.log('[generatePage] page created, id:', page.id, '- triggering generation');
 
