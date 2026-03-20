@@ -1,54 +1,93 @@
 # Current Work - Colourbook
 
-## Active Task
-All bootstrap phases COMPLETE. Verify audit COMPLETE. App ready for real API keys.
+## Last Session Summary
+Implemented full credits system + local printer pipeline, then ran a design pass with motion animations and Magic UI components. Filled real API keys (OpenAI, Supabase service role) from ~/.env.keys. Stripe keys still placeholder.
 
-## Recent Changes (This Session)
-- cfa0815: Phase 6 Design Pass — 16 files, +641 lines
-  - CSS animations, gradient text, loading skeletons, staggered entrance animations
-  - Landing: floating decorations, sample preview, use-case section, footer nav links
-  - Dashboard: personalized greeting, colored stat icon badges, credits banner
-  - Generate: credits banner with color states, form icons, full-width CTA
-  - Gallery/Family: loading skeletons, hover zoom, photo upload preview
-  - Auth/Pricing: scale-in animation, FAQ section, elevated shadows
-  - Sidebar: avatar initials, logout button, active shadow
-  - Fixed all Select onValueChange type errors for base-ui
+## What Changed
+- d9094db: Credits system + local printer pipeline (15 files, +1191/-70)
+  - DB migration: cb_credit_transactions, cb_credit_packs (4 seeded), cb_print_queue tables + RLS
+  - Server actions: credits.ts (spend, add, grant, purchase, profitability), print-queue.ts
+  - Credit costs: src/lib/credit-costs.ts (generate=1/$0.04, finalize=2, download=3, print=15/$12)
+  - Pages/books/orders now use spendCredits() with cost tracking
+  - Checkout page: credit-based (15 credits) instead of Stripe payment
+  - Webhook handles credit_purchase Stripe sessions
+  - New pages: /credits (store), /admin/print-queue, /admin/profitability
+  - PDF download endpoint: /api/books/[bookId]/download (returns image URLs, no actual PDF compilation yet)
+  - Sidebar: added Credits, Print Queue, Profitability nav links
 
-- eb7e9bb: Verify audit fixes — 14 files, +187/-312 lines
-  - CRITICAL: /api/generate authenticates from session, not client-supplied userId
-  - CRITICAL: Created /auth/callback route for Google OAuth code exchange
-  - CRITICAL: Admin actions (orders, regions, partners, prompts) use supabaseAdmin with requireAdmin() guard
-  - GOTCHA: Added admin/layout.tsx with server-side role check
-  - GOTCHA: Stripe webhook handles checkout.session.expired (cancels pending orders)
-  - GOTCHA: Checkout postal code validation (Canadian format A1A 1A1)
-  - GOTCHA: Middleware catch block redirects to /login for protected routes on error
-  - CLEANUP: Removed unused deps (@dnd-kit/*, jspdf)
+- 52d3f24: Design pass — motion animations + Magic UI (11 files, +651/-105)
+  - Installed motion (framer-motion) + Magic UI components
+  - NumberTicker on dashboard stat cards
+  - BorderBeam on featured "Generate" action card
+  - SparklesText on landing hero text
+  - motion.div hover/tap animations on dashboard cards
+  - CreditsBadge now links to /credits with hover animation
+  - Landing hero floating decorations use motion (smoother than CSS)
 
-## Production Testing — ALL PASS
-- All 21 pages render correctly
-- Auth flow works (login → redirect → dashboard)
-- Sidebar navigation works across all pages
-- Empty states render with CTAs on all data pages
-- 0 JavaScript console errors
+## Build Status
+PASSING — clean build on 52d3f24, Next.js 16.1.7 Turbopack
 
-## Verify Audit — ALL FIXED
-- 3 critical issues fixed (API auth, OAuth callback, admin RLS)
-- 4 gotcha issues fixed (admin layout, webhook, postal code, middleware)
-- 4 unused deps removed
-- 10 dead action exports kept (scaffolded for future use)
-- TypeScript: 0 errors, no security issues, no XSS, no SQL injection
+## Known Bugs & Issues
+- PDF download endpoint (src/app/api/books/[bookId]/download/route.ts) returns image URLs JSON, not an actual compiled PDF — needs pdf-lib or client-side PDF generation
+- No email notifications when orders ship (tracking number emails)
+- Credit purchase flow untested with real Stripe keys (still placeholder)
 
-## Next Steps
-1. Set real API keys in Vercel (OPENAI_API_KEY, STRIPE keys, SUPABASE_SERVICE_ROLE_KEY)
-2. Test AI generation end-to-end with real OpenAI key
-3. Test Stripe checkout flow with real keys
-4. Configure Google OAuth in Supabase dashboard
-5. Mobile responsive testing
+## Incomplete Work
+- Stripe keys still placeholder in .env.local (sk_test_placeholder, whsec_placeholder)
+- Need Stripe keys set in Vercel env vars for production credit purchases
+- Google OAuth not configured in Supabase dashboard
+- No refund flow for credits
+- Profitability dashboard uses fallback JS aggregation (RPC function not available)
 
-## Context for Next Session
-- Deployed: https://colourbook-wine.vercel.app
-- Build: clean on eb7e9bb
-- Test accounts: test@colourbook.com / TestPassword123!, admin@colourbook.com / AdminPassword123!
-- Supabase: CCandSS (netbsyvxrhrqxyzqflmd)
-- All admin actions use supabaseAdmin + requireAdmin() pattern
-- Auth callback at /auth/callback handles Google OAuth
+## Tests
+- No automated tests written
+- Manual visual verification via Playwright CLI screenshots (landing, login, dashboard)
+- Untested: credits purchase flow, print queue workflow, PDF download, profitability data
+
+## Next Steps (priority order)
+1. Get Stripe keys from dashboard → fill .env.local + ~/.env.keys + Vercel env vars
+2. Test credit purchase flow end-to-end with real Stripe
+3. Implement actual PDF compilation (pdf-lib) in download endpoint
+4. Test AI page generation with real OpenAI key (now filled)
+5. Add shipping notification emails when admin marks order as shipped
+6. Mobile responsive testing
+7. Configure Google OAuth in Supabase dashboard
+
+## Gotchas for Next Session
+- .env.local has real OPENAI_API_KEY and SUPABASE_SERVICE_ROLE_KEY now (filled from ~/.env.keys)
+- NEXT_PUBLIC_APP_URL set to https://colourbook-wine.vercel.app
+- Vercel env vars likely still have old/placeholder values — need to sync
+- Credits system uses admin client (supabaseAdmin) for atomic operations — RLS policies allow service_role only for writes
+- The `motion` package (not `framer-motion`) is installed — Magic UI components depend on it
+- cb_credit_packs seeded with 4 packs: Starter(10/$4.99), Popular(25/$9.99), Pro(50/$17.99), Family(100/$29.99)
+- Checkout no longer uses Stripe — orders go straight to 'paid' status via credits, added to print queue
+
+## Files Touched This Session
+### Created
+- src/lib/credit-costs.ts
+- src/lib/actions/credits.ts
+- src/lib/actions/print-queue.ts
+- src/app/(protected)/credits/page.tsx
+- src/app/(protected)/admin/print-queue/page.tsx
+- src/app/(protected)/admin/profitability/page.tsx
+- src/app/api/books/[bookId]/download/route.ts
+- src/components/shared/animated-stat-card.tsx
+- src/components/shared/animated-action-card.tsx
+- src/components/landing/hero-animated.tsx
+- src/components/ui/number-ticker.tsx
+- src/components/ui/border-beam.tsx
+- src/components/ui/sparkles-text.tsx
+
+### Modified
+- src/types/index.ts (CreditTransaction, CreditPack, PrintQueueItem types)
+- src/lib/actions/pages.ts (spendCredits for generation)
+- src/lib/actions/books.ts (spendCredits for finalize)
+- src/lib/actions/orders.ts (credit-based ordering + print queue)
+- src/app/api/stripe/webhook/route.ts (credit purchase handling)
+- src/components/layout/sidebar.tsx (Credits, Print Queue, Profitability links)
+- src/app/(protected)/admin/page.tsx (Print Queue stat, Profitability link)
+- src/app/(protected)/checkout/[bookId]/page.tsx (credit-based checkout)
+- src/app/(protected)/dashboard/page.tsx (animated cards)
+- src/app/page.tsx (animated hero)
+- src/components/shared/credits-badge.tsx (motion + link to /credits)
+- .env.local (real OpenAI + Supabase keys filled)
