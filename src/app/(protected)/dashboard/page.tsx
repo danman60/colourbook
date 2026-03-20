@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { Users, Wand2, Image, BookOpen, ShoppingBag, ArrowRight, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { AnimatedStatCard } from '@/components/shared/animated-stat-card';
+import { AnimatedActionCard } from '@/components/shared/animated-action-card';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -35,85 +37,59 @@ export default async function DashboardPage() {
 
   const quickActions = [
     { href: '/family', icon: Users, color: 'text-primary', bg: 'bg-primary/10', title: 'Upload Family Photos', subtitle: 'Add your family members' },
-    { href: '/generate', icon: Wand2, color: 'text-accent', bg: 'bg-accent/10', title: 'Generate a Page', subtitle: 'Create AI coloring pages' },
+    { href: '/generate', icon: Wand2, color: 'text-accent', bg: 'bg-accent/10', title: 'Generate a Page', subtitle: 'Create AI coloring pages', featured: true },
     { href: '/books', icon: BookOpen, color: 'text-secondary', bg: 'bg-secondary/10', title: 'Build a Book', subtitle: 'Compile your coloring book' },
   ];
 
   return (
     <div className="space-y-8">
       {/* Welcome header */}
-      <div className="animate-fade-in-up">
+      <div>
         <h1 className="text-3xl font-heading font-bold">
-          Hey {firstName} <span className="animate-wiggle inline-block">👋</span>
+          Hey {firstName} <span className="inline-block animate-wiggle">👋</span>
         </h1>
         <p className="text-muted-foreground mt-1">Welcome to your Colourbook studio</p>
       </div>
 
-      {/* Stats */}
+      {/* Stats — animated with NumberTicker */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, i) => (
-          <Link key={stat.label} href={stat.href}>
-            <Card className={`cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 animate-fade-in-up stagger-${i + 1}`}>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-3xl font-heading font-bold">{stat.value}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
-                  </div>
-                  <div className={`${stat.bg} rounded-xl p-2.5`}>
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+          <AnimatedStatCard key={stat.label} {...stat} index={i} />
         ))}
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions — animated with BorderBeam on featured */}
       <div className="grid md:grid-cols-3 gap-4">
         {quickActions.map((action, i) => (
-          <Link key={action.href} href={action.href}>
-            <Card className={`cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 border-dashed hover:border-solid animate-fade-in-up stagger-${i + 5}`}>
-              <CardContent className="pt-6 text-center">
-                <div className={`inline-flex ${action.bg} rounded-2xl p-3 mb-3`}>
-                  <action.icon className={`h-7 w-7 ${action.color}`} />
-                </div>
-                <p className="font-heading font-semibold">{action.title}</p>
-                <p className="text-sm text-muted-foreground mt-1">{action.subtitle}</p>
-              </CardContent>
-            </Card>
-          </Link>
+          <AnimatedActionCard key={action.href} {...action} index={i} />
         ))}
       </div>
 
       {/* Credits reminder */}
       {profile && profile.generation_credits > 0 && (
-        <div className="animate-fade-in-up stagger-8">
-          <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-            <CardContent className="pt-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary/10 rounded-xl p-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">You have {profile.generation_credits} generation credits</p>
-                  <p className="text-sm text-muted-foreground">Each credit creates one AI coloring page</p>
-                </div>
+        <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+          <CardContent className="pt-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-primary/10 rounded-xl p-2">
+                <Sparkles className="h-5 w-5 text-primary" />
               </div>
-              <Link href="/generate">
-                <Button size="sm" className="cursor-pointer gap-1">
-                  Generate <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
+              <div>
+                <p className="font-medium">You have {profile.generation_credits} generation credits</p>
+                <p className="text-sm text-muted-foreground">Each credit creates one AI coloring page</p>
+              </div>
+            </div>
+            <Link href="/generate">
+              <Button size="sm" className="cursor-pointer gap-1">
+                Generate <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       )}
 
       {/* Recent Pages */}
       {recentPages && recentPages.length > 0 && (
-        <div className="animate-fade-in">
+        <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-heading font-semibold">Recent Pages</h2>
             <Link href="/gallery">

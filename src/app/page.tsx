@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { Palette, Upload, Wand2, BookOpen, Printer, ArrowRight, Sparkles, Star, Heart } from 'lucide-react';
+import { Palette, Upload, Wand2, BookOpen, Printer, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { HeroAnimated } from '@/components/landing/hero-animated';
 
 export default function LandingPage() {
   return (
@@ -24,52 +25,8 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative px-6 py-20 md:py-32 max-w-5xl mx-auto text-center">
-        {/* Floating decorative elements */}
-        <div className="absolute top-10 left-8 animate-float opacity-20 hidden md:block">
-          <Star className="h-12 w-12 text-warm-amber" fill="currentColor" />
-        </div>
-        <div className="absolute top-24 right-12 animate-float opacity-15 hidden md:block" style={{ animationDelay: '2s' }}>
-          <Heart className="h-10 w-10 text-primary" fill="currentColor" />
-        </div>
-        <div className="absolute bottom-20 left-16 animate-float opacity-10 hidden md:block" style={{ animationDelay: '4s' }}>
-          <Palette className="h-14 w-14 text-teal" />
-        </div>
-        <div className="absolute bottom-32 right-20 animate-wiggle opacity-15 hidden md:block">
-          <Sparkles className="h-8 w-8 text-warm-amber" />
-        </div>
-
-        <div className="animate-fade-in-up">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-6">
-            <Sparkles className="h-4 w-4" />
-            AI-Powered Family Coloring Books
-          </div>
-        </div>
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-heading font-bold text-foreground leading-tight mb-6 animate-fade-in-up stagger-2">
-          Turn Your Family Photos Into{' '}
-          <span className="text-gradient">Beautiful Coloring Books</span>
-        </h1>
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 animate-fade-in-up stagger-3">
-          Upload photos of your family, let AI create stunning coloring pages, and order a
-          professionally printed book — or download free PDFs to color at home.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up stagger-4">
-          <Link href="/signup">
-            <Button size="lg" className="cursor-pointer text-base px-8 gap-2 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300">
-              Start Creating <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/pricing">
-            <Button size="lg" variant="outline" className="cursor-pointer text-base px-8 hover:bg-muted/50 transition-all duration-300">
-              View Pricing
-            </Button>
-          </Link>
-        </div>
-        <p className="text-sm text-muted-foreground mt-4 animate-fade-in-up stagger-5">
-          20 free coloring pages included — no credit card required
-        </p>
-      </section>
+      {/* Hero — animated with motion + SparklesText */}
+      <HeroAnimated />
 
       {/* Sample Preview */}
       <section className="px-6 pb-8 max-w-5xl mx-auto animate-fade-in-up stagger-6">
