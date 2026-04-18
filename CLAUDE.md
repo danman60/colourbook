@@ -31,3 +31,5 @@ Storage buckets: family-photos, coloring-pages.
 - Accent: #2EC4B6 (teal)
 - Background: #FFF8F0 (cream)
 - Fonts: Fredoka (headings), Nunito (body)
+
+<!-- GitNexus rules: see master ~/projects/CLAUDE.md → "GitNexus Workflow" section. Per-project index name is the project folder name. -->
