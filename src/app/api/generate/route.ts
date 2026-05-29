@@ -8,7 +8,13 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    const { pageId } = await request.json();
+    let body: { pageId?: string };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const { pageId } = body;
 
     if (!pageId) {
       return NextResponse.json({ error: 'Missing pageId' }, { status: 400 });
