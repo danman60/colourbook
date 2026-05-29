@@ -1,5 +1,39 @@
 # Current Work - Colourbook
 
+## QA E2E Loop — May 29, 2026 (DEPLOYED TO PROD ✅)
+Autonomous test→fix→deploy→retest loop against prod. **All non-skipped flows pass.**
+Full report: `tests/reports/QA-READINESS-2026-05-29.md`.
+
+### Shipped this run (3 deploys)
+- `458aadf` **fix: dashboard 500** — server component passed lucide icon *components*
+  (functions) to client components; "Functions cannot be passed directly to Client
+  Components" → every authed route 500'd. Now pass icon by name string + internal map.
+- `7863026` **fix: image generation** — key has no `dall-e-3`; switched to `gpt-image-1`
+  (drop style/response_format, quality high, decode b64_json). Real generation verified
+  on prod (200, valid 1024px PNG, -1 credit via real UI).
+- `f72c27d` **fix: /api/generate maxDuration=60** (gpt-image-1 ≈30s).
+
+### Prod env fixed (was placeholders!)
+- Synced real `OPENAI_API_KEY` + `SUPABASE_SERVICE_ROLE_KEY` to Vercel prod (had been
+  `placeholder...` for 72d — generation + credits would have been broken on prod).
+
+### Verified PASS (deterministic HTTP + DB)
+- PDF download: 200/app-pdf, page-count==pages, credit -3 once, 502+no-charge on broken
+  image, 402 insufficient, 404 cross-user, 401 unauth, 400 no-pages — ALL pass.
+- Generation: real gpt-image-1 E2E, page→complete, image reachable, credit deducted.
+- Dashboard + all user routes 200; admin routes 200 (as admin), 307 (non-admin).
+
+### Skipped (authorized)
+- Stripe purchase/webhook (publishable key + webhook secret still placeholder in prod).
+- Google OAuth (provider not configured).
+
+### Follow-ups (non-blocking)
+- Generation spends credit before image produced (no refund on failure) — product call.
+- `cb_handle_new_user` trigger swallows profile-insert errors (signups could lack a row).
+- `download_pdf` txn logs cost_cents=0 (cosmetic; credit debit correct).
+
+---
+
 ## Overnight Fleet Run (May 28, 2026)
 Shipped real PDF compilation + a QA test suite. PUSHED to `main` (commit 92e6664). Prod deploy NOT run (manual `vercel --prod` — paused per rails).
 

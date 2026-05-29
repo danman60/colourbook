@@ -1,0 +1,108 @@
+# Colourbook — QA Readiness Report
+
+**Date:** 2026-05-29 (EDT)
+**Target:** https://colourbook-wine.vercel.app (prod)
+**Mode:** Autonomous E2E test → fix → deploy → retest loop
+**Verdict:** ✅ All non-skipped flows pass on current prod. 3 bugs found + fixed + deployed.
+
+---
+
+## Summary
+
+Started on prod running an **undeployed** state (PDF commit `92e6664` never shipped)
+with **placeholder** OpenAI + Supabase service-role keys in Vercel. After syncing real
+keys, deploying, and fixing 3 bugs across 3 deploys, every non-skipped flow passes.
+
+The QA browser agent (gemma3:12b) confirmed dashboard/navigation/generate UI and real
+credit deduction; HTTP-level gating (401/402/404/400/502) and PDF correctness were
+verified **deterministically** via authenticated requests + Supabase DB checks
+(the browser agent structurally cannot manipulate balances or post arbitrary bookIds).
+
+---
+
+## Pre-flight (config fixes, not code)
+
+- Created confirmed QA user `qa-colourbook@example.com` (service-role admin). The
+  `cb_handle_new_user` trigger swallowed the profile insert (exception → RETURN NEW),
+  so the `cb_profiles` row was inserted manually. Login verified against prod.
+- **Prod Vercel env had placeholders** for `OPENAI_API_KEY` and
+  `SUPABASE_SERVICE_ROLE_KEY` (set 72d ago). Synced real values from `.env.local`
+  (OpenAI key validated: 200, 124 models). This alone would have broken generation +
+  the credits system on prod.
+
+## Bugs fixed (committed + deployed)
+
+| Commit | Bug | Fix |
+|--------|-----|-----|
+| `458aadf` | **Dashboard 500 for every authed user** — server component passed lucide icon **components** (functions) as props to client components `AnimatedStatCard`/`AnimatedActionCard`. "Functions cannot be passed directly to Client Components." Blocked the entire app post-login (QA run1: 0/12). | Pass icon by **name string**; client components resolve via an internal map. |
+| `7863026` | **Image generation 500** — key has no `dall-e-3` ("model does not exist"); `style` + `response_format` params also rejected. | Switch to **gpt-image-1**: drop `style`/`response_format`, `quality` `hd`→`high`, decode returned `b64_json` straight to a Buffer. |
+| `f72c27d` | `/api/generate` could time out (gpt-image-1 + upload ≈ 30s, past default limit). | `runtime='nodejs'`, `maxDuration=60` (matches download route). |
+
+## Flows verified on current prod
+
+### PDF download — `/api/books/[bookId]/download` (headline) — ALL PASS
+Verified deterministically (authed cookie + DB):
+- ✅ **200 `application/pdf`**, `Content-Disposition: attachment; filename="qa-good-book.pdf"`, valid PDF v1.7, 22,952 bytes.
+- ✅ **Page count == book pages** (2 == 2), US-Letter portrait.
+- ✅ **Credits deducted once** — 100→97, one `cb_credit_transactions` row `action='download_pdf'`, `credits=-3`, `balance_after=97`.
+- ✅ **No charge on build failure** — unreachable image → **502** `Failed to compile PDF`, balance unchanged, no txn.
+- ✅ **Insufficient credits** — balance 2 (<3) → **402**, no PDF delivered, no charge.
+- ✅ **Ownership** — another user's book → **404**. Unauthenticated → **401**.
+- ✅ **No completed pages** — book with NULL `coloring_page_url` → **400**.
+
+### OpenAI page generation (authorized $ spend) — PASS
+- ✅ Real gpt-image-1 generation on prod: POST `/api/generate` → **200**, 30.3s, returns public image URL.
+- ✅ Page row → `generation_status='complete'`, `coloring_page_url` set, no error.
+- ✅ Image reachable: 200, `image/png`, valid 1024×1024 PNG (916 KB).
+- ✅ **Generation credit deducted** — real browser-UI flow (createPage) wrote two `generate_page` txns (`credits=-1`). Credit spend on the actual user path confirmed.
+
+### Routes / pages — PASS
+- ✅ Dashboard + all user routes authed **200**: dashboard, gallery, books, family, credits, generate, orders.
+- ✅ Admin routes correctly **307** for non-admin; **200** for admin (admin, print-queue, profitability, orders, users).
+- ✅ `/credits` UI renders (200). Public: `/` 200, `/login` 200.
+
+### Browser QA agent (gemma3:12b, real browser)
+- Run 1 (pre-fix): 0/12 — every flow blocked by the dashboard 500.
+- Run 2 (post dashboard-fix): 5/12 PASS; navigated dashboard/gallery/generate, filled + submitted the real Generate form (triggered createPage credit spend). Remaining 7 "fails" are **test-method limitations**, not app bugs (see below).
+
+---
+
+## Skipped paths (authorized — NOT failures)
+
+- **Stripe credit purchase + webhook** — only `STRIPE_SECRET_KEY` present in prod;
+  `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` + `STRIPE_WEBHOOK_SECRET` are placeholders.
+  `/credits` UI renders; no real checkout attempted. (Checklist §C #9/#10.)
+- **Google OAuth** — provider not configured in Supabase. Email/password auth used.
+
+## Browser-agent "fails" that are test-method limitations (verified PASS deterministically)
+
+- #5 insufficient-credits (402), #6 ownership (404), #7 no-pages (400): the browser
+  agent cannot set a balance or POST an arbitrary bookId — all three verified ✅ via
+  authenticated HTTP + DB.
+- #8 admin print-queue `pdf_url`: test user isn't admin and the fresh queue is empty;
+  endpoint is owner-scoped (documented caveat). Admin routes render 200.
+- #9/#10 Stripe: authorized SKIP.
+- #12 E2E generate: agent waited ~5s; generation takes ~30s (timing, not a bug).
+
+---
+
+## Remaining notes / non-blocking
+
+- `download_pdf` transaction logs `cost_cents=0` (credits debit is correct at -3). Cosmetic.
+- Generation spends the credit at `createPage` **before** the image is produced; a
+  generation failure still consumes the credit. Pre-existing product behavior — now
+  low-risk since gpt-image-1 generation succeeds. Flag for product decision (refund on
+  failure?), not a QA blocker.
+- `cb_handle_new_user` trigger silently swallows profile-insert failures
+  (`EXCEPTION WHEN OTHERS`). New signups via the trigger path could land without a
+  profile row. Worth hardening, outside this loop's scope.
+
+## Deploys this run
+`458aadf` → `7863026` → `f72c27d`, each `vercel --prod` (aliased to colourbook-wine).
+Plus prod env key sync (OpenAI + Supabase service-role).
+
+## Test artifacts
+- `scripts/qa-create-test-user.mjs`, `scripts/qa-make-cookie.mjs`, `scripts/qa-upload-pages.mjs`
+- QA user `qa-colourbook@example.com` retains 100 credits + sample books/pages for re-runs.
+- Cross-user fixture removed (no pollution of real accounts).
+- Browser-agent reports: `~/projects/qa-agent/tests/reports/qa-20260529-04*`
