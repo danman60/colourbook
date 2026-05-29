@@ -3,10 +3,11 @@
 **Date:** 2026-05-29 (EDT)
 **Target:** https://colourbook-wine.vercel.app (prod)
 **Mode:** Autonomous E2E test → fix → deploy → retest loop
-**Verdict:** ✅ ALL GREEN. Full user lifecycle passes on current prod. 7 bugs found
-+ fixed + deployed (3 first loop, 4 in deep coverage) + prod env key sync + security
-hardening. Two of the bugs had silently broken the app's two most important flows
-(signup onboarding and page generation) for every real user.
+**Verdict:** ✅ All in-code flows green on prod. **9 bugs fixed + deployed** + prod env
+key sync + security/perf hardening. Three had silently broken core flows for every real
+user (signup→profile, page generation, signup→confirmation redirect).
+⚠️ **One launch blocker remains** that is NOT a code bug and needs a product/infra
+decision: confirmation emails use Supabase's rate-limited default SMTP (see Round 4).
 
 ### Final all-green re-confirmation (current prod, this session's last sweep)
 - ✅ Authed route crawl — 13 routes, HTTP 200, **0 console/page errors**, admin gates.
@@ -169,6 +170,25 @@ originally requested route (verified `/generate`).
   `/login?redirect=%2Fdashboard` (preserves intended destination).
 - ✅ **Protected-route guard** — unauthenticated `/dashboard` → `/login`.
 - ✅ **404** — unknown route returns HTTP 404 with a not-found page (no 500).
+
+## Round 4 — onboarding / email confirmation (1 more fix + a launch blocker)
+
+- **Fixed: signup bounced confirmed-email users to /login.** Email confirmation is
+  ENABLED on the project, so `supabase.auth.signUp()` returns **no session**, but the
+  signup page redirected to `/dashboard` regardless → middleware bounced the brand-new
+  user to `/login` with no explanation. Now branches on `data.session`: redirects only
+  when a session exists, otherwise shows a "Check your email to confirm" screen.
+  (Deployed; signup page renders 200.)
+
+- 🚩 **LAUNCH BLOCKER (infra, outside autonomous authority): confirmation emails won't
+  deliver at volume.** The project uses Supabase's **default built-in SMTP**, which is
+  rate-limited (signup attempts returned `429 over_email_send_rate_limit`) and not for
+  production. With email confirmation ON, real users can't activate their accounts if
+  the email never arrives. **Action required (product/infra decision):** either
+  (a) configure a custom SMTP provider (Resend/SendGrid/Postmark) in Supabase Auth, or
+  (b) disable "Confirm email" for frictionless onboarding (matches the landing page's
+  "start instantly / no credit card" promise). Both touch the **shared CC&SS auth
+  config** and/or need SMTP credentials, so not changed autonomously.
 
 ## Skipped paths (authorized — NOT failures)
 

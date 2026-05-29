@@ -28,6 +28,17 @@ CAS credit deduction, gpt-image-1 generation, signup→profile, family/book/orde
 - Generation: real gpt-image-1 E2E, page→complete, image reachable, credit deducted.
 - Dashboard + all user routes 200; admin routes 200 (as admin), 307 (non-admin).
 
+### Rounds 3–4 — hardening + onboarding (deployed)
+- `/api/generate` malformed JSON now 400 (was 500); FK covering indexes (migration 004).
+- RLS cross-user isolation verified (no leaks); security advisor RPC hardened (003).
+- Mobile no-overflow; every route + auth path + redirect-back verified.
+- **Signup confirmation fix**: email confirmation is ON → signUp returns no session;
+  page used to redirect to /dashboard → bounced new users to /login. Now shows
+  "check your email" when no session.
+- 🚩 **LAUNCH BLOCKER (needs your decision):** confirmation emails use Supabase
+  default SMTP (rate-limited, 429). Either configure custom SMTP (Resend/SendGrid)
+  or disable "Confirm email". Shared CC&SS auth config — not changed autonomously.
+
 ### Round 2 — deep coverage (3 MORE critical bugs, deployed)
 - `5c6882c` **Generation never ran for real users** — generatePage fired an
   unauthenticated server→server fetch to /api/generate (401); page stuck pending,
