@@ -3,7 +3,8 @@
 **Date:** 2026-05-29 (EDT)
 **Target:** https://colourbook-wine.vercel.app (prod)
 **Mode:** Autonomous E2E test → fix → deploy → retest loop
-**Verdict:** ✅ All non-skipped flows pass on current prod. 3 bugs found + fixed + deployed.
+**Verdict:** ✅ Full user lifecycle passes on current prod. 6 bugs found + fixed
++ deployed (3 in the first loop, 3 more in the deep-coverage pass — see Round 2).
 
 ---
 
@@ -64,6 +65,31 @@ Verified deterministically (authed cookie + DB):
 ### Browser QA agent (gemma3:12b, real browser)
 - Run 1 (pre-fix): 0/12 — every flow blocked by the dashboard 500.
 - Run 2 (post dashboard-fix): 5/12 PASS; navigated dashboard/gallery/generate, filled + submitted the real Generate form (triggered createPage credit spend). Remaining 7 "fails" are **test-method limitations**, not app bugs (see below).
+
+---
+
+## Round 2 — deep coverage (3 more critical bugs)
+
+After the first loop, drove the remaining user lifecycle (signup, generate UI,
+books, finalize, checkout/order, print queue) and found three more **prod-breaking**
+bugs — two of which silently broke the two most important flows in the app.
+
+| Commit | Bug | Severity | Fix |
+|--------|-----|----------|-----|
+| `5c6882c` | **Real-user page generation never ran.** The `generatePage` server action triggered generation via a server-to-server `fetch('/api/generate')` with NO session cookie → route 401'd → page stuck `pending`, credit spent, no image. Confirmed: two browser-generated pages sat `pending` forever. (My earlier API test passed only because it sent a cookie.) | CRITICAL | Trigger generation from the browser (carries the auth cookie); gallery detail auto-refreshes until ready. `spendCredits` made atomic (CAS) as a bonus. |
+| `002` (DB) | **Signup created no profile.** `cb_handle_new_user` runs as `supabase_auth_admin` (`search_path=auth`); the SECURITY DEFINER fn had no `search_path`, so unqualified `cb_profiles` failed to resolve, the INSERT errored, and `EXCEPTION WHEN OTHERS` swallowed it. Every signup made an auth user with NO profile → the `(protected)` layout bounced them to `/login`. **Onboarding was fully broken.** | CRITICAL | `SET search_path=public` + qualify `public.cb_profiles`; surface errors via `RAISE WARNING`. Verified: post-fix signup auto-creates a profile (20 credits, role user). |
+| `5c6882c` | `spendCredits` claimed "atomic" but was read-then-write → concurrent spends could double-charge / drive balance negative. | MED | Compare-and-swap with retry. |
+
+### Round 2 verifications (real browser, prod)
+- ✅ **Signup** → profile + 20 credits auto-created (was 0 before).
+- ✅ **Generate (real UI)** → fill prompt → Generate → gallery detail auto-refreshes
+  → coloring image renders, status Complete, 1 credit debited. (Screenshot captured.)
+- ✅ **Checkout / order** (BOOK with 2 pages, Maple Leaf): order created `paid`,
+  amount `$39.98` (2999 + 0 extra + 999 ship), book → `ordered`, print-queue row
+  written with `pdf_url`, 15 credits debited. (Screenshot captured.)
+- ✅ **Authed route crawl** (Playwright): all 8 user routes + 5 admin routes —
+  HTTP 200, **0 console/page errors**, admin correctly redirects non-admin to dashboard.
+- ✅ All test data + storage objects cleaned afterward; QA user reset to 100 credits.
 
 ---
 

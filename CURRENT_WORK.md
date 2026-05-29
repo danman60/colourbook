@@ -23,6 +23,18 @@ Full report: `tests/reports/QA-READINESS-2026-05-29.md`.
 - Generation: real gpt-image-1 E2E, page→complete, image reachable, credit deducted.
 - Dashboard + all user routes 200; admin routes 200 (as admin), 307 (non-admin).
 
+### Round 2 — deep coverage (3 MORE critical bugs, deployed)
+- `5c6882c` **Generation never ran for real users** — generatePage fired an
+  unauthenticated server→server fetch to /api/generate (401); page stuck pending,
+  credit spent, no image. Now triggered from the browser; gallery auto-refreshes.
+  Also made spendCredits atomic (CAS).
+- `4fd3a78` (DB migration 002) **Signup created no profile** — cb_handle_new_user
+  ran with search_path=auth (no public) → cb_profiles unresolved → swallowed →
+  every signup stranded at /login. Fixed search_path; verified profile auto-creates.
+- Verified E2E on prod (real browser): signup→profile, generate→image, checkout→
+  order paid $39.98 + print queue + 15 credits, all routes 0 console errors.
+- All test data + storage cleaned; QA user reset to 100 credits.
+
 ### Skipped (authorized)
 - Stripe purchase/webhook (publishable key + webhook secret still placeholder in prod).
 - Google OAuth (provider not configured).
