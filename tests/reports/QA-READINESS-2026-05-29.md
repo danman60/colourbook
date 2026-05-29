@@ -93,6 +93,30 @@ bugs — two of which silently broke the two most important flows in the app.
 
 ---
 
+### Round 2 observations (not bugs — design gaps, noted for product)
+- **"Finalize book" is unimplemented.** `updateBook(status:'complete')` and the
+  `finalize_book` (2-credit) charge are never invoked by any UI — the book detail
+  page only offers Preview + Order Print. Lifecycle is draft → ordered. Download
+  works on draft books that have pages (it checks pages, not status), and order
+  checks `page_count ≥ 1`, so the app is functional without finalize. The 2-credit
+  finalize charge therefore never happens. Decide: wire a Finalize step, or drop
+  the cost/label.
+- **`regenerate_page` is defined but unused** (credit cost + profitability label
+  only; no regenerate action/route exists).
+- **Checkout Print Partner dropdown** showed the partner UUID rather than the name
+  under programmatic (Playwright) selection; likely a Radix display quirk on
+  synthetic clicks — verify with a real pointer click. Functional either way.
+- **`getCustomerProfitability`** calls a non-existent `exec_sql` RPC and falls back
+  to JS aggregation (works; admin/profitability renders fine). Minor.
+
+### Security pass (Supabase advisors)
+- ✅ **0 cb_ tables with RLS disabled** — all cb_ tables enforce RLS.
+- Fixed (migration `003`): `cb_handle_new_user` (SECURITY DEFINER) was executable by
+  `anon`/`authenticated` via REST RPC — revoked EXECUTE; trigger still fires
+  (verified signup still creates a profile). Closes the advisor WARN.
+- App-layer authz: every server action filters `.eq('user_id', user.id)`; download
+  endpoint returns 404 cross-user (verified). RLS is the second layer.
+
 ## Skipped paths (authorized — NOT failures)
 
 - **Stripe credit purchase + webhook** — only `STRIPE_SECRET_KEY` present in prod;
