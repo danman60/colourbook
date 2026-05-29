@@ -1,8 +1,13 @@
 # Current Work - Colourbook
 
-## QA E2E Loop — May 29, 2026 (DEPLOYED TO PROD ✅)
+## QA E2E Loop — May 29, 2026 (DEPLOYED TO PROD ✅ — ALL GREEN)
 Autonomous test→fix→deploy→retest loop against prod. **All non-skipped flows pass.**
-Full report: `tests/reports/QA-READINESS-2026-05-29.md`.
+7 bugs fixed across 6 commits + 2 DB migrations + prod env key sync + security
+hardening. Full report: `tests/reports/QA-READINESS-2026-05-29.md`.
+
+Final sweep confirmed green: route crawl (0 errors), PDF matrix (401/200/502/400/404),
+CAS credit deduction, gpt-image-1 generation, signup→profile, family/book/order flows,
+0 cb_ tables RLS-disabled. Prod data cleaned; QA user at 100 credits.
 
 ### Shipped this run (3 deploys)
 - `458aadf` **fix: dashboard 500** — server component passed lucide icon *components*

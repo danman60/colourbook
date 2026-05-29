@@ -3,8 +3,20 @@
 **Date:** 2026-05-29 (EDT)
 **Target:** https://colourbook-wine.vercel.app (prod)
 **Mode:** Autonomous E2E test → fix → deploy → retest loop
-**Verdict:** ✅ Full user lifecycle passes on current prod. 6 bugs found + fixed
-+ deployed (3 in the first loop, 3 more in the deep-coverage pass — see Round 2).
+**Verdict:** ✅ ALL GREEN. Full user lifecycle passes on current prod. 7 bugs found
++ fixed + deployed (3 first loop, 4 in deep coverage) + prod env key sync + security
+hardening. Two of the bugs had silently broken the app's two most important flows
+(signup onboarding and page generation) for every real user.
+
+### Final all-green re-confirmation (current prod, this session's last sweep)
+- ✅ Authed route crawl — 13 routes, HTTP 200, **0 console/page errors**, admin gates.
+- ✅ PDF download matrix — 401 / 200 (2 pages) / 502 / 400 / 404, all correct.
+- ✅ Credit spend (refactored CAS `spendCredits`) — 100→97, one `download_pdf` txn.
+- ✅ Page generation (gpt-image-1) — HTTP 200, real image produced.
+- ✅ Signup → profile auto-created (20 credits) after the trigger + revoke fixes.
+- ✅ Family add, book build (create + add page), checkout→order→print queue — all pass.
+- ✅ Security: 0 cb_ tables with RLS disabled; SECURITY DEFINER RPC access revoked.
+- ✅ All test data + storage removed; QA user reset to 100 credits.
 
 ---
 
