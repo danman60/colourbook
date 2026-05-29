@@ -64,6 +64,14 @@ Verified deterministically (authed cookie + DB):
 - ✅ **Ownership** — another user's book → **404**. Unauthenticated → **401**.
 - ✅ **No completed pages** — book with NULL `coloring_page_url` → **400**.
 
+### Generation failure path — PASS
+- ✅ A prompt rejected by OpenAI's safety system → route returns **500**, and
+  `generateColoringPage`'s catch block correctly sets the page to
+  `generation_status='failed'` with the error recorded (not stuck `pending`; no url).
+  The gallery detail page renders the "Generation Failed" card with the message.
+  (Note: the UI flow spends 1 credit at `createPage` before generation, so a failure
+  consumes the credit — refund-on-failure is the product follow-up flagged below.)
+
 ### OpenAI page generation (authorized $ spend) — PASS
 - ✅ Real gpt-image-1 generation on prod: POST `/api/generate` → **200**, 30.3s, returns public image URL.
 - ✅ Page row → `generation_status='complete'`, `coloring_page_url` set, no error.
