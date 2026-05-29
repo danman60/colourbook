@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Palette, Loader2 } from 'lucide-react';
@@ -26,6 +26,14 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/dashboard';
+
+  // Surface auth/callback failures (e.g. expired/invalid email-confirmation links)
+  // that redirect here with ?error=… — otherwise the user lands with no explanation.
+  useEffect(() => {
+    const e = searchParams.get('error');
+    if (e === 'auth_failed') setError('That confirmation link was invalid or has expired. Please log in, or sign up again.');
+    else if (e === 'no_code') setError('Invalid confirmation link. Please try logging in.');
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
