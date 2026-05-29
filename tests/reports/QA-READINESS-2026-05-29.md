@@ -3,7 +3,7 @@
 **Date:** 2026-05-29 (EDT)
 **Target:** https://colourbook-wine.vercel.app (prod)
 **Mode:** Autonomous E2E test → fix → deploy → retest loop
-**Verdict:** ✅ All in-code flows green on prod. **10 bugs fixed + deployed** + prod env
+**Verdict:** ✅ All in-code flows green on prod. **11 bugs fixed + deployed** + prod env
 key sync + security/perf hardening. Three had silently broken core flows for every real
 user (signup→profile, page generation, signup→confirmation redirect).
 ⚠️ **One launch blocker remains** that is NOT a code bug and needs a product/infra
@@ -199,6 +199,17 @@ originally requested route (verified `/generate`).
   `resetPasswordForEmail` / forgot-password UI anywhere). Users who forget their
   password have no recovery path. Building it is a deliberate feature (needs UI + the
   same SMTP that's the launch blocker above) — flagged, not built autonomously.
+
+### Order flow robustness (static-review fix)
+- **Fixed: `createOrder` lost credits on a failed insert.** It spent 15 credits
+  before inserting the order; an insert failure returned an error but never refunded
+  → silent 15-credit loss. Now refunds via `addCredits(…, 'refund', 15)` on insert
+  error (mirrors `generatePage`'s rollback).
+- **Fixed: unchecked print-queue insert.** A failed `cb_print_queue` insert left a
+  paid order invisible to fulfillment silently. Now logged loudly for admin
+  reconciliation (the order still succeeds — it's paid and valid).
+- ✅ Regression: happy-path order still charges 15 once, sets book `ordered`, writes
+  the queue row, 0 refunds.
 
 ### Concurrency — spendCredits CAS validated under real load
 - ✅ Set balance to exactly 3 (one download's cost), fired **2 simultaneous**
