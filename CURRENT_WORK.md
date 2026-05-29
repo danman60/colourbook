@@ -1,6 +1,35 @@
 # Current Work - Colourbook
 
-## Last Session Summary
+## Overnight Fleet Run (May 28, 2026)
+Shipped real PDF compilation + a QA test suite. PUSHED to `main` (commit 92e6664). Prod deploy NOT run (manual `vercel --prod` — paused per rails).
+
+### Shipped + pushed (92e6664)
+- **Real PDF compilation** — `/api/books/[bookId]/download` now builds an actual
+  multi-page PDF via `pdf-lib` (one colouring image per US-Letter portrait page,
+  centered, PNG/JPEG by magic bytes) instead of returning image-URL JSON.
+  - Build happens BEFORE charging: build fail → 502 + no charge; insufficient
+    credits → 402 + PDF discarded (never delivered unpaid). Returns
+    `application/pdf` attachment. Node runtime, maxDuration 60.
+  - `<a href>` callers (orders `pdf_url`, admin print-queue) now download a real PDF.
+- **Test suite** — `tests/agent/download-and-credits-checklist.md` (QA-agent /
+  real-data form per project no-unit-test rule): PDF correctness, no-charge-on-
+  failure, 402/404/401 gating, Stripe credit-purchase, print queue, E2E.
+
+### Stripe — PARTIAL (note for user)
+- Only `STRIPE_SECRET_KEY` is present in `~/.env.keys`. **Publishable key +
+  webhook secret are NOT** — required for the `/credits` purchase + webhook flow.
+- No secrets committed. To finish: set `STRIPE_SECRET_KEY`,
+  `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` in `.env.local`
+  (gitignored) + Vercel env, then run checklist §C.
+
+### PENDING USER (before prod deploy)
+- Run the QA checklist against a preview (esp. PDF page-count + credit deduction).
+- Provide remaining Stripe keys; sync Vercel env.
+- Then `vercel --prod`.
+
+---
+
+## Prior Session Summary
 Implemented full credits system + local printer pipeline, then ran a design pass with motion animations and Magic UI components. Filled real API keys (OpenAI, Supabase service role) from ~/.env.keys. Stripe keys still placeholder.
 
 ## What Changed
