@@ -3,7 +3,7 @@
 **Date:** 2026-05-29 (EDT)
 **Target:** https://colourbook-wine.vercel.app (prod)
 **Mode:** Autonomous E2E test → fix → deploy → retest loop
-**Verdict:** ✅ All in-code flows green on prod. **9 bugs fixed + deployed** + prod env
+**Verdict:** ✅ All in-code flows green on prod. **10 bugs fixed + deployed** + prod env
 key sync + security/perf hardening. Three had silently broken core flows for every real
 user (signup→profile, page generation, signup→confirmation redirect).
 ⚠️ **One launch blocker remains** that is NOT a code bug and needs a product/infra
@@ -189,6 +189,16 @@ originally requested route (verified `/generate`).
   (b) disable "Confirm email" for frictionless onboarding (matches the landing page's
   "start instantly / no credit card" promise). Both touch the **shared CC&SS auth
   config** and/or need SMTP credentials, so not changed autonomously.
+
+### Round 4 (cont.) — auth callback / recovery
+- ✅ **`/auth/callback`** robust: no `code` → 307 `/login?error=no_code`; bad code →
+  307 `/login?error=auth_failed`; valid → exchanges session and redirects. No 500.
+- **Fixed: login now surfaces `?error=`** — previously a failed/expired confirmation
+  link bounced to `/login` with no message; now shows a friendly explanation.
+- ⚠️ **Feature gap (not a bug): no password-reset flow exists** (no
+  `resetPasswordForEmail` / forgot-password UI anywhere). Users who forget their
+  password have no recovery path. Building it is a deliberate feature (needs UI + the
+  same SMTP that's the launch blocker above) — flagged, not built autonomously.
 
 ## Skipped paths (authorized — NOT failures)
 
