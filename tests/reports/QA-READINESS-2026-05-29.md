@@ -129,6 +129,28 @@ bugs — two of which silently broke the two most important flows in the app.
 - App-layer authz: every server action filters `.eq('user_id', user.id)`; download
   endpoint returns 404 cross-user (verified). RLS is the second layer.
 
+## Round 3 — hardening pass (security / perf / edge / mobile)
+
+- ✅ **RLS cross-user isolation verified** (`scripts/qa-verify-rls.mjs`): created a
+  second auth user and used their JWT against the RLS-enforced REST API —
+  0 rows returned for the other user's `cb_books` / `cb_pages` / `cb_orders` /
+  `cb_profiles`; they see only their own profile. No leaks. (Defense beyond the
+  app-layer `.eq('user_id')` filters.)
+- ✅ **`/api/generate` negative cases**: 401 unauth, 400 missing pageId, 404
+  unknown/foreign pageId. Fixed: malformed JSON body now returns **400** (was 500)
+  — `request.json()` guarded.
+- ✅ **Perf (migration `004`)**: added covering indexes for the 6 unindexed FKs the
+  advisor flagged (`cb_book_pages.page_id`, `cb_orders.{credit_transaction_id,
+  print_partner_id}`, `cb_print_queue.{book_id,order_id,user_id}`).
+- ✅ **Mobile (375×812)**: login, dashboard, generate, books, credits, family — no
+  horizontal overflow; sidebar collapses to a hamburger; layout coherent.
+- ⚠️ **Deferred (documented, not applied — risk on a live shared DB):** advisor also
+  flagged `auth_rls_initplan` (25 cb_ policies call `auth.uid()` per-row; wrap in
+  `(select auth.uid())`) and `multiple_permissive_policies` (15). These are
+  scale-perf optimizations on access-control policies; at current row counts the
+  gain is negligible and rewriting 40 live RLS policies autonomously is higher risk
+  than reward. Recommend a deliberate, reviewed migration. 4 unused indexes are INFO-only.
+
 ## Skipped paths (authorized — NOT failures)
 
 - **Stripe credit purchase + webhook** — only `STRIPE_SECRET_KEY` present in prod;
