@@ -4,11 +4,15 @@ import { motion } from 'motion/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BorderBeam } from '@/components/ui/border-beam';
 import Link from 'next/link';
-import type { LucideIcon } from 'lucide-react';
+import { Users, Wand2, BookOpen, type LucideIcon } from 'lucide-react';
+
+// Icon resolved by name — a server component cannot pass a component function
+// across the client boundary (the dashboard passes a string key instead).
+const ICONS: Record<string, LucideIcon> = { Users, Wand2, BookOpen };
 
 interface AnimatedActionCardProps {
   href: string;
-  icon: LucideIcon;
+  icon: string;
   color: string;
   bg: string;
   title: string;
@@ -17,7 +21,8 @@ interface AnimatedActionCardProps {
   featured?: boolean;
 }
 
-export function AnimatedActionCard({ href, icon: Icon, color, bg, title, subtitle, index, featured }: AnimatedActionCardProps) {
+export function AnimatedActionCard({ href, icon, color, bg, title, subtitle, index, featured }: AnimatedActionCardProps) {
+  const Icon = ICONS[icon] ?? Wand2;
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

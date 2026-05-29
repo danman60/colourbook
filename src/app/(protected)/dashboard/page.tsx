@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { Users, Wand2, Image, BookOpen, ShoppingBag, ArrowRight, Sparkles } from 'lucide-react';
+import { Image, ArrowRight, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AnimatedStatCard } from '@/components/shared/animated-stat-card';
@@ -29,16 +29,16 @@ export default async function DashboardPage() {
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
   const stats = [
-    { label: 'Family Members', value: familyCount || 0, icon: Users, href: '/family', color: 'text-primary', bg: 'bg-primary/10' },
-    { label: 'Pages Generated', value: pageCount || 0, icon: Image, href: '/gallery', color: 'text-accent', bg: 'bg-accent/10' },
-    { label: 'Books Created', value: bookCount || 0, icon: BookOpen, href: '/books', color: 'text-secondary', bg: 'bg-secondary/10' },
-    { label: 'Orders', value: orderCount || 0, icon: ShoppingBag, href: '/orders', color: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Family Members', value: familyCount || 0, icon: 'Users', href: '/family', color: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Pages Generated', value: pageCount || 0, icon: 'Image', href: '/gallery', color: 'text-accent', bg: 'bg-accent/10' },
+    { label: 'Books Created', value: bookCount || 0, icon: 'BookOpen', href: '/books', color: 'text-secondary', bg: 'bg-secondary/10' },
+    { label: 'Orders', value: orderCount || 0, icon: 'ShoppingBag', href: '/orders', color: 'text-primary', bg: 'bg-primary/10' },
   ];
 
   const quickActions = [
-    { href: '/family', icon: Users, color: 'text-primary', bg: 'bg-primary/10', title: 'Upload Family Photos', subtitle: 'Add your family members' },
-    { href: '/generate', icon: Wand2, color: 'text-accent', bg: 'bg-accent/10', title: 'Generate a Page', subtitle: 'Create AI coloring pages', featured: true },
-    { href: '/books', icon: BookOpen, color: 'text-secondary', bg: 'bg-secondary/10', title: 'Build a Book', subtitle: 'Compile your coloring book' },
+    { href: '/family', icon: 'Users', color: 'text-primary', bg: 'bg-primary/10', title: 'Upload Family Photos', subtitle: 'Add your family members' },
+    { href: '/generate', icon: 'Wand2', color: 'text-accent', bg: 'bg-accent/10', title: 'Generate a Page', subtitle: 'Create AI coloring pages', featured: true },
+    { href: '/books', icon: 'BookOpen', color: 'text-secondary', bg: 'bg-secondary/10', title: 'Build a Book', subtitle: 'Compile your coloring book' },
   ];
 
   return (

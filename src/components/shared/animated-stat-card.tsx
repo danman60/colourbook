@@ -4,19 +4,24 @@ import { motion } from 'motion/react';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { Card, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
-import type { LucideIcon } from 'lucide-react';
+import { Users, Image, BookOpen, ShoppingBag, type LucideIcon } from 'lucide-react';
+
+// Icons are resolved by name here: a server component cannot pass a component
+// (function) across the client boundary, so the dashboard passes a string key.
+const ICONS: Record<string, LucideIcon> = { Users, Image, BookOpen, ShoppingBag };
 
 interface AnimatedStatCardProps {
   label: string;
   value: number;
-  icon: LucideIcon;
+  icon: string;
   href: string;
   color: string;
   bg: string;
   index: number;
 }
 
-export function AnimatedStatCard({ label, value, icon: Icon, href, color, bg, index }: AnimatedStatCardProps) {
+export function AnimatedStatCard({ label, value, icon, href, color, bg, index }: AnimatedStatCardProps) {
+  const Icon = ICONS[icon] ?? Image;
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
