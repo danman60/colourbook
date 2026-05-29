@@ -210,6 +210,9 @@ originally requested route (verified `/generate`).
 - ✅ **Order status update** (`/admin/orders`): opened an order, changed status to
   `shipped` with a tracking number → `updateOrderStatus` (requireAdmin-guarded) wrote
   `status='shipped'`, `tracking_number='TRACK123XYZ'`. Admin ops flow works.
+- ✅ **Print-queue status update** (`/admin/print-queue`): "Mark Printed" advanced a
+  queued item → `status='printed'`, `printed_at` set (`updatePrintQueueStatus`,
+  requireAdmin-guarded).
 - Admin pages (orders, users, print-queue, profitability) render 200 for admins,
   redirect non-admins. (Profitability uses a JS-aggregation fallback — renders fine.)
 
