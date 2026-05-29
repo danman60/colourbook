@@ -17,6 +17,7 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -31,7 +32,7 @@ export default function SignupPage() {
     }
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({
+    const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName } },
@@ -44,12 +45,44 @@ export default function SignupPage() {
       return;
     }
 
-    console.log('[signup] success');
-    setSuccess(true);
-    setTimeout(() => {
-      router.push('/dashboard');
-      router.refresh();
-    }, 1500);
+    // If email confirmation is enabled, signUp returns no session — the user must
+    // confirm via email before logging in. Redirecting to /dashboard in that case
+    // just bounces them to /login. Only auto-redirect when a session was created.
+    if (data.session) {
+      console.log('[signup] success — session active');
+      setSuccess(true);
+      setTimeout(() => {
+        router.push('/dashboard');
+        router.refresh();
+      }, 1500);
+    } else {
+      console.log('[signup] success — email confirmation required');
+      setNeedsConfirmation(true);
+      setLoading(false);
+    }
+  }
+
+  if (needsConfirmation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background paper-texture px-4">
+        <Card className="w-full max-w-md shadow-xl animate-scale-in">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="rounded-2xl bg-primary/10 p-4 inline-block mb-4">
+              <Sparkles className="h-10 w-10 text-primary" />
+            </div>
+            <h2 className="text-2xl font-heading font-bold mb-2">Check your email</h2>
+            <p className="text-muted-foreground">
+              We sent a confirmation link to <span className="font-medium">{email}</span>.
+              Click it to activate your account, then log in — you&apos;ll have 20 free
+              generation credits waiting.
+            </p>
+            <Link href="/login" className="inline-block mt-5">
+              <Button variant="outline" className="cursor-pointer">Go to login</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (success) {
