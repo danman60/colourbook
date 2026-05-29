@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { createClient } from '@/lib/supabase/server';
 import { formatDateTime } from '@/lib/utils';
+import { AutoRefresh } from '@/components/shared/auto-refresh';
 
 export default async function PageDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,8 +22,13 @@ export default async function PageDetailPage({ params }: { params: Promise<{ id:
 
   if (!page) notFound();
 
+  const isInProgress =
+    !page.coloring_page_url &&
+    (page.generation_status === 'pending' || page.generation_status === 'generating');
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      <AutoRefresh active={isInProgress} />
       <Link href="/gallery" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors">
         <ArrowLeft className="h-4 w-4" /> Back to Gallery
       </Link>
@@ -31,7 +37,7 @@ export default async function PageDetailPage({ params }: { params: Promise<{ id:
         <Card className="overflow-hidden shadow-lg animate-scale-in">
           <img src={page.coloring_page_url} alt={page.prompt} className="w-full" />
         </Card>
-      ) : page.generation_status === 'generating' ? (
+      ) : page.generation_status === 'generating' || page.generation_status === 'pending' ? (
         <Card className="p-20 text-center animate-fade-in-up">
           <div className="bg-primary/10 rounded-2xl p-4 inline-block mb-4">
             <Clock className="h-10 w-10 text-primary animate-pulse" />

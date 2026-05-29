@@ -81,15 +81,12 @@ export async function generatePage(input: CreatePage): Promise<ActionResult<Page
     return { data: null, error: creditErr };
   }
 
-  console.log('[generatePage] page created, id:', page.id, '- triggering generation');
+  console.log('[generatePage] page created, id:', page.id);
 
-  // Trigger async generation via API route
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  fetch(`${appUrl}/api/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pageId: page.id }),
-  }).catch(err => console.error('[generatePage] async trigger error:', err));
+  // NOTE: generation is triggered from the BROWSER (see the /generate client
+  // page) so the request to /api/generate carries the user's session cookie.
+  // A server-to-server fetch from here is unauthenticated → /api/generate 401s
+  // and the page would be stuck 'pending' with the credit already spent.
 
   revalidatePath('/gallery');
   revalidatePath('/dashboard');

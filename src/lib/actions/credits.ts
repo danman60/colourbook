@@ -71,32 +71,48 @@ export async function spendCredits(
 ): Promise<ActionResult<{ balanceAfter: number }>> {
   console.log('[spendCredits]', { userId, action, credits, referenceId, costCents });
 
-  // Get current balance using admin client for atomic operation
-  const { data: profile, error: profileErr } = await (supabaseAdmin
-    .from('cb_profiles') as any)
-    .select('generation_credits')
-    .eq('id', userId)
-    .single();
+  // Atomic deduct via compare-and-swap: only update if the balance we read is
+  // still current AND covers the cost. Prevents two concurrent spends from both
+  // passing the check and double-spending / driving the balance negative.
+  let newBalance = 0;
+  let applied = false;
+  for (let attempt = 0; attempt < 4 && !applied; attempt++) {
+    const { data: profile, error: profileErr } = await (supabaseAdmin
+      .from('cb_profiles') as any)
+      .select('generation_credits')
+      .eq('id', userId)
+      .single();
 
-  if (profileErr || !profile) {
-    return { data: null, error: 'Failed to get user profile' };
+    if (profileErr || !profile) {
+      return { data: null, error: 'Failed to get user profile' };
+    }
+
+    if (profile.generation_credits < credits) {
+      return { data: null, error: `Not enough credits. Need ${credits}, have ${profile.generation_credits}.` };
+    }
+
+    newBalance = profile.generation_credits - credits;
+
+    const { data: updatedRows, error: updateErr } = await (supabaseAdmin
+      .from('cb_profiles') as any)
+      .update({ generation_credits: newBalance })
+      .eq('id', userId)
+      .eq('generation_credits', profile.generation_credits) // CAS guard
+      .select('id');
+
+    if (updateErr) {
+      console.error('[spendCredits] update error:', updateErr.message);
+      return { data: null, error: 'Failed to deduct credits' };
+    }
+
+    applied = Array.isArray(updatedRows) && updatedRows.length > 0;
+    if (!applied) {
+      console.warn('[spendCredits] CAS miss (concurrent update), retrying', attempt + 1);
+    }
   }
 
-  if (profile.generation_credits < credits) {
-    return { data: null, error: `Not enough credits. Need ${credits}, have ${profile.generation_credits}.` };
-  }
-
-  const newBalance = profile.generation_credits - credits;
-
-  // Deduct credits
-  const { error: updateErr } = await (supabaseAdmin
-    .from('cb_profiles') as any)
-    .update({ generation_credits: newBalance })
-    .eq('id', userId);
-
-  if (updateErr) {
-    console.error('[spendCredits] update error:', updateErr.message);
-    return { data: null, error: 'Failed to deduct credits' };
+  if (!applied) {
+    return { data: null, error: 'Could not deduct credits (concurrent update). Please retry.' };
   }
 
   // Log transaction

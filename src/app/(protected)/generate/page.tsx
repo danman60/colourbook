@@ -72,6 +72,16 @@ export default function GeneratePage() {
       return;
     }
 
+    // Trigger generation from the browser so the request carries the session
+    // cookie (a server-side fetch from the action would be unauthenticated → 401).
+    // The fetch survives the client-side navigation below; the gallery detail
+    // page auto-refreshes until the image is ready.
+    fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pageId: data!.id }),
+    }).catch(() => {});
+
     toast.success('Coloring page is being generated! Check your gallery.');
     setCredits(prev => prev - 1);
     router.push(`/gallery/${data!.id}`);
