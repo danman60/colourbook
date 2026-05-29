@@ -200,6 +200,12 @@ originally requested route (verified `/generate`).
   password have no recovery path. Building it is a deliberate feature (needs UI + the
   same SMTP that's the launch blocker above) — flagged, not built autonomously.
 
+### Concurrency — spendCredits CAS validated under real load
+- ✅ Set balance to exactly 3 (one download's cost), fired **2 simultaneous**
+  `/download` requests: one returned **200** (PDF + charge), the other **402**.
+  Final balance **0** (not −3, no double-spend, never negative), exactly **1**
+  `download_pdf` transaction. Confirms the compare-and-swap fix prevents the race.
+
 ### Admin fulfillment (verified)
 - ✅ **Order status update** (`/admin/orders`): opened an order, changed status to
   `shipped` with a tracking number → `updateOrderStatus` (requireAdmin-guarded) wrote
