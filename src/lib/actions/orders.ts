@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { requireAdmin } from '@/lib/actions/admin';
-import { spendCredits } from '@/lib/actions/credits';
+import { spendCredits, addCredits } from '@/lib/actions/credits';
 import { CREDIT_COSTS } from '@/lib/credit-costs';
 import { revalidatePath } from 'next/cache';
 import type { ActionResult, Order, CreateOrder, OrderStatus } from '@/types';
@@ -112,7 +112,10 @@ export async function createOrder(input: CreateOrder): Promise<ActionResult<Orde
     .single();
 
   if (error) {
-    console.error('[createOrder] error:', error.message);
+    // Credits were already spent above — refund them so a failed order insert
+    // doesn't silently cost the customer 15 credits.
+    console.error('[createOrder] insert error, refunding credits:', error.message);
+    await addCredits(user.id, 'refund', cost.credits, 0, { reason: 'order_insert_failed', book_id: input.book_id });
     return { data: null, error: error.message };
   }
 
@@ -132,7 +135,7 @@ export async function createOrder(input: CreateOrder): Promise<ActionResult<Orde
 
   const pdfUrl = `/api/books/${input.book_id}/download`;
 
-  await (supabaseAdmin
+  const { error: pqError } = await (supabaseAdmin
     .from('cb_print_queue') as any)
     .insert({
       order_id: data.id,
@@ -142,7 +145,13 @@ export async function createOrder(input: CreateOrder): Promise<ActionResult<Orde
       status: 'queued',
     });
 
-  console.log('[createOrder] success, id:', data.id, 'amount:', totalCents, '- added to print queue');
+  if (pqError) {
+    // The order is paid and valid; don't fail the customer's order, but surface
+    // loudly so an admin can reconcile (the order won't appear in the print queue).
+    console.error('[createOrder] print-queue insert FAILED — order', data.id, 'needs manual queueing:', pqError.message);
+  }
+
+  console.log('[createOrder] success, id:', data.id, 'amount:', totalCents, pqError ? '- WARNING: not queued' : '- added to print queue');
   revalidatePath('/orders');
   revalidatePath('/books');
   revalidatePath('/admin/print-queue');
