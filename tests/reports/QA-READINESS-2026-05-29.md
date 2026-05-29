@@ -151,6 +151,14 @@ bugs — two of which silently broke the two most important flows in the app.
   gain is negligible and rewriting 40 live RLS policies autonomously is higher risk
   than reward. Recommend a deliberate, reviewed migration. 4 unused indexes are INFO-only.
 
+## Auth entry points (real, no cookie injection)
+- ✅ **Login form** — email/password submit lands on the dashboard (verified via a
+  fresh browser context, screenshot confirms authenticated dashboard).
+- ✅ **Logout** (sidebar) — clears the session; re-visiting `/dashboard` redirects to
+  `/login?redirect=%2Fdashboard` (preserves intended destination).
+- ✅ **Protected-route guard** — unauthenticated `/dashboard` → `/login`.
+- ✅ **404** — unknown route returns HTTP 404 with a not-found page (no 500).
+
 ## Skipped paths (authorized — NOT failures)
 
 - **Stripe credit purchase + webhook** — only `STRIPE_SECRET_KEY` present in prod;
