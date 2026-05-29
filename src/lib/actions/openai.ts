@@ -37,28 +37,26 @@ export async function generateColoringPage(pageId: string, userId: string): Prom
 
     console.log('[generateColoringPage] prompt:', fullPrompt.substring(0, 200) + '...');
 
-    // Call DALL-E 3
+    // Call gpt-image-1 (returns base64-encoded PNG; no url/style/response_format
+    // params — those belong to the retired dall-e-3 API and this key has no dall-e-3).
     const openai = getOpenAIClient();
     const response = await openai.images.generate({
-      model: 'dall-e-3',
+      model: 'gpt-image-1',
       prompt: fullPrompt,
       n: 1,
       size: '1024x1024',
-      quality: 'hd',
-      style: 'natural',
-      response_format: 'url',
+      quality: 'high',
     });
 
-    const imageUrl = response.data?.[0]?.url;
-    if (!imageUrl) {
-      throw new Error('No image URL in OpenAI response');
+    const b64 = response.data?.[0]?.b64_json;
+    if (!b64) {
+      throw new Error('No image data in OpenAI response');
     }
 
-    console.log('[generateColoringPage] got image URL, downloading...');
+    console.log('[generateColoringPage] got image, uploading...');
 
-    // Download image and upload to Supabase Storage
-    const imageResponse = await fetch(imageUrl);
-    const imageBuffer = await imageResponse.arrayBuffer();
+    // Decode base64 PNG and upload to Supabase Storage
+    const imageBuffer = Buffer.from(b64, 'base64');
     const fileName = `${userId}/${pageId}.png`;
 
     const { error: uploadError } = await supabaseAdmin.storage
