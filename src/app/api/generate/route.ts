@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateColoringPage } from '@/lib/actions/openai';
 
+// gpt-image-1 generation + storage upload runs ~15-40s — beyond the default limit.
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const { pageId } = await request.json();
