@@ -151,6 +151,17 @@ bugs — two of which silently broke the two most important flows in the app.
   gain is negligible and rewriting 40 live RLS policies autonomously is higher risk
   than reward. Recommend a deliberate, reviewed migration. 4 unused indexes are INFO-only.
 
+## Coverage map (every route verified)
+Public: `/` `/login` `/signup` `/pricing` — 200, 0 errors, design coherent
+(Fredoka/Nunito, cream/rose/teal, "20 free pages" matches the 20-credit grant).
+Protected (user): `/dashboard` `/family` `/generate` `/gallery` `/gallery/[id]`
+`/books` `/books/[id]` `/books/[id]/preview` `/credits` `/orders` `/orders/[id]`
+`/checkout/[bookId]` — all 200, 0 console/page errors.
+Admin: `/admin` + `/admin/{print-queue,profitability,orders,users}` — 200 as admin,
+307→dashboard as non-admin.
+Redirect-back: protected route → `/login?redirect=…` → after login lands on the
+originally requested route (verified `/generate`).
+
 ## Auth entry points (real, no cookie injection)
 - ✅ **Login form** — email/password submit lands on the dashboard (verified via a
   fresh browser context, screenshot confirms authenticated dashboard).
