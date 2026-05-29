@@ -137,6 +137,13 @@ bugs — two of which silently broke the two most important flows in the app.
   (verified signup still creates a profile). Closes the advisor WARN.
 - App-layer authz: every server action filters `.eq('user_id', user.id)`; download
   endpoint returns 404 cross-user (verified). RLS is the second layer.
+- **Code review** (auth/admin gating): `middleware.ts` + `requireAdmin` both use
+  `supabase.auth.getUser()` (server-validated JWT, not spoofable `getSession`) and
+  check `cb_profiles.role` from the DB; error fallback denies (redirects to login).
+  No issues.
+- **No secret leakage**: client JS bundle (`.next/static`) scanned — **0** occurrences
+  of `SUPABASE_SERVICE_ROLE_KEY` and **0** of `OPENAI_API_KEY` (only the anon/
+  publishable key ships to the browser, as intended).
 
 ## Round 3 — hardening pass (security / perf / edge / mobile)
 
