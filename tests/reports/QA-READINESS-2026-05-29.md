@@ -200,6 +200,13 @@ originally requested route (verified `/generate`).
   password have no recovery path. Building it is a deliberate feature (needs UI + the
   same SMTP that's the launch blocker above) — flagged, not built autonomously.
 
+### Admin fulfillment (verified)
+- ✅ **Order status update** (`/admin/orders`): opened an order, changed status to
+  `shipped` with a tracking number → `updateOrderStatus` (requireAdmin-guarded) wrote
+  `status='shipped'`, `tracking_number='TRACK123XYZ'`. Admin ops flow works.
+- Admin pages (orders, users, print-queue, profitability) render 200 for admins,
+  redirect non-admins. (Profitability uses a JS-aggregation fallback — renders fine.)
+
 ## Skipped paths (authorized — NOT failures)
 
 - **Stripe credit purchase + webhook** — only `STRIPE_SECRET_KEY` present in prod;
